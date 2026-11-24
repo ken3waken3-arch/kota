@@ -1,4 +1,4 @@
-const CACHE_NAME = "jiritsu-navi-github-v1";
+const CACHE_NAME = "jiritsu-navi-github-v2";
 const APP_ENTRY = new URL("./index.html", self.location.href);
 const APP_SHELL = [APP_ENTRY, new URL("./manifest.webmanifest", self.location.href), new URL("./icon.svg", self.location.href)];
 
