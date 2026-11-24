@@ -1,0 +1,18 @@
+{
+  "name": "自立活動 支援ナビ",
+  "short_name": "自立ナビ",
+  "description": "自立活動・教科別のつまずき支援を探す学校向けアプリ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8fbf8",
+  "theme_color": "#18796b",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
