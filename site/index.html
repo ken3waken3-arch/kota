@@ -58,14 +58,14 @@
 .ws-pick{border:2px solid #b8d5cf;border-radius:12px;min-height:105px;padding:13px 12px;display:flex;gap:6px;align-items:flex-start;font-size:14px;line-height:1.5;overflow-wrap:anywhere;background:#fcfefd}.ws-check{font-size:25px;line-height:1;color:#168172}
 .ws-pick.ws-large{min-height:120px;font-size:16px;align-items:center}.ws-ruler{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:18px 0 11px}
 .ws-therm{border:2px solid #d8e5e2;border-radius:13px;text-align:center;padding:10px 5px 12px;background:#f7faf8}.ws-therm .face{font-size:28px;display:block;margin-bottom:6px}.ws-therm span{font-size:11px;display:block}
-.ws-numbered{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.ws-step{border:2px solid #b8d5cf;border-radius:12px;min-height:120px;padding:13px 11px;line-height:1.6}.ws-step-number{font-weight:750;font-size:16px;margin-bottom:5px;color:#18796b}.ws-empty-lines{margin:10px 0 0;min-height:76px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,#cedbd9 28px,#cedbd9 29px);border-radius:2px}
+.ws-numbered{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.ws-step{border:2px solid #b8d5cf;border-radius:12px;min-height:120px;padding:13px 11px;line-height:1.6}.ws-step-number{font-weight:750;font-size:16px;margin-bottom:5px;color:#18796b}.ws-empty-lines{margin:10px 0 0;min-height:76px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,#cedbd9 28px,#cedbd9 29px);border-radius:2px}.ws-subject-answer{padding:11px 13px;border:1px solid #cbdad6;border-radius:10px;background:#fbfdfc;break-inside:avoid}.ws-subject-label{font-size:14px;font-weight:750;line-height:1.55;color:#164e51;margin-bottom:7px}
 .ws-short-lines{min-height:52px}.ws-reflect{display:flex;gap:11px;flex-wrap:wrap;margin:11px 0}.ws-reflect span{border:2px solid #c5dcd6;background:#f6fbf9;border-radius:30px;padding:7px 13px;font-size:15px}
 .ws-talk-bubble{border:2px solid #75b7ac;background:#f2faf6;padding:17px 20px;border-radius:24px;font-size:18px;line-height:1.65;margin:13px 0;min-height:70px}
 .ws-footer{padding-top:13px;margin-top:18px;border-top:1px solid #c7d6d1;color:#617472;font-size:11px;display:flex;justify-content:space-between}
 .ws-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.ws-editor-grid>div:first-child,.ws-editor-grid>div:last-child{grid-column:1/-1}.ws-edit-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.ws-edit-row textarea{min-height:88px}
 .ws-paper.ws-light .ws-purpose{font-size:17px}.ws-paper.ws-light .ws-task-title{font-size:19px}.ws-paper.ws-light .ws-pick{font-size:16px}
 @media(max-width:750px){.ws-toolbar,.ws-editor-grid,.ws-edit-row{grid-template-columns:1fr}.ws-toolbar .ws-wide,.ws-editor-grid>div:first-child,.ws-editor-grid>div:last-child{grid-column:auto}.ws-preview-wrap{padding:7px}.ws-paper{min-height:0;padding:17px 14px;box-shadow:none}.ws-paper h1{font-size:23px}.ws-pick-grid,.ws-numbered{grid-template-columns:1fr}.ws-pick,.ws-step{min-height:60px}.ws-purpose{font-size:13px}.ws-therm .face{font-size:19px}.ws-therm span{font-size:9px}}
-@media print{@page{size:A4;margin:10mm}.app{display:none!important}.print-sheet{display:block!important;padding:0!important;margin:0!important}.print-sheet .ws-paper{width:188mm;max-width:188mm;min-height:245mm;box-shadow:none;border:none;padding:6mm 7mm;margin:0 auto;break-after:avoid}.print-sheet .ws-paper h1{font-size:21pt;margin:4pt 0 8pt}.print-sheet .ws-task{margin-bottom:10pt}.print-sheet .ws-purpose{font-size:12pt}.print-sheet .ws-task-title{font-size:13pt}.print-sheet .ws-pick-grid,.print-sheet .ws-numbered{grid-template-columns:repeat(3,1fr)}.print-sheet .ws-pick{min-height:31mm;font-size:10pt}.print-sheet .ws-step{min-height:32mm;font-size:10pt}.print-sheet .ws-empty-lines{min-height:19mm}.print-sheet .ws-reflect span{font-size:11pt}.print-sheet .ws-footer{font-size:8pt;margin-top:6pt;padding-top:7pt}.print-sheet .ws-therm .face{font-size:23pt}.print-sheet .ws-therm span{font-size:8pt}.print-sheet .ws-paper.ws-light .ws-pick{font-size:12pt}}
+@media print{@page{size:A4;margin:10mm}.app{display:none!important}.print-sheet{display:block!important;padding:0!important;margin:0!important}.print-sheet .ws-paper{width:188mm;max-width:188mm;min-height:245mm;box-shadow:none;border:none;padding:6mm 7mm;margin:0 auto;break-after:avoid}.print-sheet .ws-paper h1{font-size:21pt;margin:4pt 0 8pt}.print-sheet .ws-task{margin-bottom:10pt}.print-sheet .ws-purpose{font-size:12pt}.print-sheet .ws-task-title{font-size:13pt}.print-sheet .ws-pick-grid,.print-sheet .ws-numbered{grid-template-columns:repeat(3,1fr)}.print-sheet .ws-pick{min-height:31mm;font-size:10pt}.print-sheet .ws-step{min-height:32mm;font-size:10pt}.print-sheet .ws-empty-lines{min-height:19mm}.print-sheet .ws-reflect span{font-size:11pt}.print-sheet .ws-footer{font-size:8pt;margin-top:6pt;padding-top:7pt}.print-sheet .ws-therm .face{font-size:23pt}.print-sheet .ws-therm span{font-size:8pt}.print-sheet .ws-paper.ws-light .ws-pick{font-size:12pt}.print-sheet .ws-subject-answer{padding:3mm 4mm}.print-sheet .ws-subject-label{font-size:10pt;margin-bottom:2mm}}
 </style></head><body>
 <div class="app"><aside class="nav"><div class="brand"><span class="brand-icon">✦</span><span><div class="brand-main">自立活動 支援ナビ</div><div class="brand-sub">JIRITSU NAVI</div></span></div><div class="nav-links"><button class="nav-btn active" data-nav="search"><span class="nav-ico">⌕</span><span>困りごとから探す</span></button><button class="nav-btn" data-nav="library"><span class="nav-ico">▤</span><span>支援辞典</span></button><button class="nav-btn" data-nav="lessons"><span class="nav-ico">▦</span><span>指導計画</span></button><button class="nav-btn" data-nav="worksheets"><span class="nav-ico">▧</span><span>ワークシート</span></button><button class="nav-btn" data-nav="records"><span class="nav-ico">✎</span><span>実践記録</span></button><button class="nav-btn" data-nav="about"><span class="nav-ico">ⓘ</span><span>使い方・出典</span></button></div><div class="nav-bottom"><strong>🌱 まずは、できる条件を探す</strong>支援は「見立てる → 一つ試す → 本人と確かめる」の順に。<p style="margin:8px 0 0">保存内容はこの端末のブラウザー内に保存されます。他の端末とは同期されません。一度オンラインで開けば、カード検索をオフラインでも利用できます。児童生徒を特定できる情報は入力しないでください。<div id="sync-status" role="status" aria-live="polite" style="margin-top:8px;font-weight:700;color:#18796b">この端末に保存</div></p></div></aside>
 <main class="main"><div class="topline"><span class="eyebrow">SUPPORT STARTS WITH UNDERSTANDING</span><span class="topflag">教科別支援 v1.1 · 端末内保存・オフライン対応</span></div>
@@ -103,7 +103,7 @@
     <div class="ws-toolbar">
       <div class="ws-wide"><label class="field-label" for="ws-card">参照する支援カード</label><select class="select" id="ws-card"></select></div>
       <div><label class="field-label" for="ws-grade">対象学年・ことば</label><select class="select" id="ws-grade"><option value="小学校低学年">小学校低学年</option><option value="小学校高学年">小学校高学年</option><option value="中学生" selected>中学生</option><option value="高校生">高校生</option></select></div>
-      <div><label class="field-label" for="ws-type">教材の形式</label><select class="select" id="ws-type"><option value="auto">自動で選ぶ</option><option value="choice">自分に合う方法を選ぶ</option><option value="emotion">気持ちの温度計</option><option value="steps">3つの手順</option><option value="talk">伝え方・ロールプレイ</option><option value="motor">動きのコツ</option><option value="schedule">見通しと切り替え</option><option value="sensory">感覚・休み方を選ぶ</option><option value="reflect">できたことの振り返り</option></select></div>
+      <div><label class="field-label" for="ws-type">教材の形式</label><select class="select" id="ws-type"><option value="auto">自動で選ぶ</option><option value="subject">教科の学び方</option><option value="choice">自分に合う方法を選ぶ</option><option value="emotion">気持ちの温度計</option><option value="steps">3つの手順</option><option value="talk">伝え方・ロールプレイ</option><option value="motor">動きのコツ</option><option value="schedule">見通しと切り替え</option><option value="sensory">感覚・休み方を選ぶ</option><option value="reflect">できたことの振り返り</option></select></div>
       <div><label class="field-label" for="ws-writing">書く量</label><select class="select" id="ws-writing"><option value="light">少なめ（選択・○付け中心）</option><option value="standard" selected>標準（短文を書ける）</option></select></div>
       <div class="ws-wide"><label class="field-label" for="ws-lesson-link">保存した指導計画とつなぐ（任意）</label><select class="select" id="ws-lesson-link"><option value="">指定しない</option></select></div>
     </div>
@@ -362,8 +362,9 @@ function deleteLessonPlan(i){if(!state.lessonPlans[i])return;if(!confirm('この
 
 
 // -------- v0.9: student-facing worksheet draft generator, offline and editable --------
-const WORK_TYPES={choice:'自分に合う方法を選ぶ',emotion:'気持ちの温度計',steps:'3つの手順',talk:'伝え方・ロールプレイ',motor:'動きのコツ',schedule:'見通しと切り替え',sensory:'感覚・休み方を選ぶ',reflect:'できたことの振り返り'};
+const WORK_TYPES={subject:'教科の学び方',choice:'自分に合う方法を選ぶ',emotion:'気持ちの温度計',steps:'3つの手順',talk:'伝え方・ロールプレイ',motor:'動きのコツ',schedule:'見通しと切り替え',sensory:'感覚・休み方を選ぶ',reflect:'できたことの振り返り'};
 function pickWorksheetType(c){
+ if(c.subject||/^教科｜/.test(String(c.area||'')))return 'subject';
  const s=[c.title,c.scene,...(c.keywords||[])].join(' ');
  if(/板書|書く|処理速度|言語理解|書字|ノート|WISC/.test(s))return 'choice';
  if(/音|光|まぶし|触覚|におい|汗|感覚過敏|刺激|感覚/.test(s)&& !/ボール|投げ|走|跳|足|姿勢/.test(s))return 'sensory';
@@ -376,19 +377,37 @@ function pickWorksheetType(c){
  return 'choice';
 }
 const wsSimple=s=>String(s||'').replace(/\s+/g,' ').replace(/[。！!]+$/,'').slice(0,68);
+function worksheetSubjectItems(c){
+ const routine=(Array.isArray(c.lesson)?c.lesson:[]).find(x=>/モデルと手掛かり提示/.test(x))||'';
+ const body=routine.replace(/^【[^】]+】[^：:]*[：:]/,'');
+ let steps=body.split(/→|->/).map(x=>x.trim()).filter(Boolean).map(x=>{
+  if(x==='教師モデル')return '先生のモデルで目標の音を確かめる';
+  if(x==='教師が句切りをモデル')return '先生の例で意味の区切りを確かめる';
+  if(x==='先生が段落一つを思考発話')return '先生の例を聞いて要点の見つけ方を確かめる';
+  if(x==='教師の例')return '例を見て手順を確かめる';
+  return x.replace(/^教師と/,'先生と').replace(/^本人が/,'自分で');
+ });
+ if(steps.length>3)steps=[steps[0],steps[1],steps.slice(2).join(' → ')];
+ const fallback=[c.goal,...(Array.isArray(c.helps)?c.helps:[]),...(Array.isArray(c.measure)?c.measure:[]),'できたところを振り返る'];
+ for(const item of fallback){if(steps.length>=3)break;if(item&&!steps.includes(item))steps.push(item)}
+ return [0,1,2].map(i=>wsSimple(steps[i]||'一つずつ確かめて試す'));
+}
 function worksheetDefault(c,grade,type,writing,linked){
  type=(type==='auto'||!WORK_TYPES[type])?pickWorksheetType(c):type;
  const young=grade==='小学校低学年';
  const beginner=grade==='小学校低学年'||grade==='小学校高学年';
+ const subject=String(c.subject||String(c.area||'').replace(/^教科｜/,'')).trim();
+ const subjectMode=type==='subject';
  const helps=(Array.isArray(c.helps)&&c.helps.length?c.helps:['短い手順で試す','別の方法も試す','困ったら相談する']);
  const lessons=linked&&Array.isArray(linked.stages)?linked.stages.filter(x=>x&&x.activity).slice(1,4).map(x=>x.activity):c.lesson||[];
- const seed={choice:helps,emotion:['きもちに気づく','少し休む','助けをたのむ'],steps:lessons.length?lessons:helps,talk:[c.words||'ちょっと聞いてもいい？','困っています。手伝ってください','少し時間をください'],motor:lessons.length?lessons:helps,schedule:['これからすることを確かめる','できることを一つ始める','終わったら次を確かめる'],sensory:['今のからだの感じに気づく','楽になる方法を一つ選ぶ','必要なら大人に伝える'],reflect:['今日やってみたこと','うまくいったこと','次に試したいこと']}[type];
+ const seed={subject:worksheetSubjectItems(c),choice:helps,emotion:['きもちに気づく','少し休む','助けをたのむ'],steps:lessons.length?lessons:helps,talk:[c.words||'ちょっと聞いてもいい？','困っています。手伝ってください','少し時間をください'],motor:lessons.length?lessons:helps,schedule:['これからすることを確かめる','できることを一つ始める','終わったら次を確かめる'],sensory:['今のからだの感じに気づく','楽になる方法を一つ選ぶ','必要なら大人に伝える'],reflect:['今日やってみたこと','うまくいったこと','次に試したいこと']}[type];
  const fallback=['自分に合いそうな方法を選ぶ','小さく試してみる','どんな感じだったか確かめる'];
- const items=[0,1,2].map((i)=>wsSimple(seed[i]||fallback[i]));
- const names={choice:'どの方法が使いやすい？',emotion:'いまの気持ちを知ろう',steps:'順番を見てやってみよう',talk:'ことばで伝えてみよう',motor:'動きのコツを見つけよう',schedule:'次にすることを見てみよう',sensory:'楽になる方法を選ぼう',reflect:'できたことを見つけよう'};
- const instructions={choice:'ためしてみたい方法に、○をつけよう。',emotion:'いまの気持ちに近い顔を、ひとつえらぼう。',steps:'順番をたしかめて、できたらチェックしよう。',talk:'じぶんが言いやすいことばを、ひとつえらぼう。',motor:'どこを意識するか、ひとつ選んでやってみよう。',schedule:'今することと、次にすることをたしかめよう。',sensory:'からだや気持ちをたしかめて、楽になる方法を選ぼう。',reflect:'今日できたことをひとつ選んで、つぎにつなげよう。'};
- const scene=(linked&&linked.scene)||c.scene;
- return {id:'WS'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),created:new Date().toLocaleDateString('ja-JP'),card:c.id,sourceLessonId:linked?.id||'',grade,writing,type,title:names[type],scene:wsSimple(scene).slice(0,90),goal:wsSimple(linked?.goal||c.goal).slice(0,85),instruction:instructions[type],items,reflect:young?'やってみて、どうだった？':(beginner?'今日の自分に合っていた方法は？':'今日試した方法は、自分にとってどのように役立った？'),notes:'',source:c.source};
+ const items=[0,1,2].map(i=>wsSimple(seed[i]||fallback[i]));
+ const names={subject:`${subject||'教科'}の学習シート`,choice:'どの方法が使いやすい？',emotion:'いまの気持ちを知ろう',steps:'順番を見てやってみよう',talk:'ことばで伝えてみよう',motor:'動きのコツを見つけよう',schedule:'次にすることを見てみよう',sensory:'楽になる方法を選ぼう',reflect:'できたことを見つけよう'};
+ const instructions={subject:'手順を見ながら、使える手掛かりを一つずつ試そう。',choice:'ためしてみたい方法に、○をつけよう。',emotion:'いまの気持ちに近い顔を、ひとつえらぼう。',steps:'順番をたしかめて、できたらチェックしよう。',talk:'じぶんが言いやすいことばを、ひとつえらぼう。',motor:'どこを意識するか、ひとつ選んでやってみよう。',schedule:'今することと、次にすることをたしかめよう。',sensory:'からだや気持ちをたしかめて、楽になる方法を選ぼう。',reflect:'今日できたことをひとつ選んで、つぎにつなげよう。'};
+ const scene=subjectMode?`今日の${subject||'教科'}の課題を確かめよう`:(linked&&linked.scene)||c.scene;
+ const reflect=subjectMode?`今日の${subject||'教科'}で、役立った手掛かりはどれ？`:young?'やってみて、どうだった？':(beginner?'今日の自分に合っていた方法は？':'今日試した方法は、自分にとってどのように役立った？');
+ return {id:'WS'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),created:new Date().toLocaleDateString('ja-JP'),card:c.id,sourceLessonId:linked?.id||'',subject:subjectMode?subject:'',grade,writing,type,title:names[type],scene:wsSimple(scene).slice(0,90),goal:wsSimple(linked?.goal||c.goal).slice(0,85),instruction:instructions[type],items,reflect,notes:'',source:c.source};
 }
 function renderWorksheetChoices(){
  const sel=$('ws-card');if(!sel)return;const prev=sel.value||state.selected;
@@ -413,13 +432,16 @@ function renderWorksheetEditor(d){if(!d)return;const host=$('ws-editor');host.cl
 function wsTask(n,title,content){return `<section class="ws-task"><div class="ws-task-title"><span class="ws-task-num">${n}</span>${safe(title)}</div>${content}</section>`}
 function wsBoxes(items,classes=''){return `<div class="ws-pick-grid">${items.map(x=>`<div class="ws-pick ${classes}"><span class="ws-check">□</span><span>${safe(x)}</span></div>`).join('')}</div>`}
 function wsSteps(items){return `<div class="ws-numbered">${items.map((x,i)=>`<div class="ws-step"><div class="ws-step-number">${i+1}  □</div><div>${safe(x)}</div></div>`).join('')}</div>`}
+function worksheetSubjectLabel(subject){return ({'国語':'本文の根拠／自分の言葉でまとめる','英語':'練習する単語・文／音・意味・つづり','数学':'分かっている数・単位／図・式・答え','理科':'観察した事実・数値／結果から分かったこと','社会':'資料の根拠／そこから分かったこと','保健体育':'今日試した動き／使った手掛かり・気づき','技術・家庭':'作業した工程／安全確認・次の工程'})[subject]||'答え・根拠・考え'}
+function worksheetSubjectAnswer(subject,light){return `<div class="ws-subject-answer"><div class="ws-subject-label">${safe(worksheetSubjectLabel(subject))}</div><div class="ws-empty-lines ${light?'ws-short-lines':''}"></div></div>`}
 function worksheetPaper(d){
- const light=d.writing==='light',more=light?'（○をつけてもいいよ）':'（ことばで書いても、○をつけてもよい）';
+ const light=d.writing==='light',more=d.type==='subject'?'（ことば・図・記号のどれでもよい）':(light?'（○をつけてもいいよ）':'（ことばで書いても、○をつけてもよい）');
  const box=wsBoxes(d.items,light?'ws-large':'');
  const steps=wsSteps(d.items);
  const lines=`<div class="ws-empty-lines ${light?'ws-short-lines':''}"></div>`;
  let middle='';
  switch(d.type){
+ case 'subject':middle=wsTask(1,'手順を見ながら進める',steps)+wsTask(2,`${d.subject||'教科'}の課題を整理する`,worksheetSubjectAnswer(d.subject,light));break;
  case 'emotion':middle=wsTask(1,'いまの気持ちをえらぶ',`<div class="ws-ruler">${[['😌','1 おちつく'],['🙂','2 まあまあ'],['😐','3 ふつう'],['😟','4 しんどい'],['😣','5 とてもつらい']].map(x=>`<div class="ws-therm"><span class="face">${x[0]}</span><span>${x[1]}</span><span>□</span></div>`).join('')}</div>`)+wsTask(2,'ためしたいことをえらぶ',box);break;
  case 'steps':middle=wsTask(1,'この順番でやってみる',steps)+wsTask(2,'とまったときにどうする？',`<div class="ws-reflect"><span>□ もう一度見る</span><span>□ 一つずつ試す</span><span>□ 手伝ってもらう</span></div>`);break;
  case 'talk':middle=wsTask(1,'言いやすいことばをえらぶ',box)+wsTask(2,'じぶんのことばで言ってみる',`<div class="ws-talk-bubble">「　　　　　　　　　　　　　」</div>`);break;
@@ -429,7 +451,7 @@ function worksheetPaper(d){
  case 'reflect':middle=wsTask(1,'今日の取り組み',steps)+wsTask(2,'よかったことを見つける',`<div class="ws-reflect"><span>□ 試せた</span><span>□ 工夫した</span><span>□ 相談できた</span></div>`);break;
  default:middle=wsTask(1,'できそうな方法をえらぶ',box)+wsTask(2,'ひとつ試してみよう',`<div class="ws-reflect"><span>□ 試してみた</span><span>□ まだ考え中</span><span>□ 助けがほしい</span></div>`);
  }
- return `<article class="ws-paper ${light?'ws-light':''}"><div class="ws-kicker">MY SUPPORT WORKSHEET</div><h1>${safe(d.title)}</h1><div class="ws-meta"><span>きょうの自立活動</span><span>ひづけ：　　月　　日</span></div><div class="ws-purpose"><b>めあて：</b>${safe(d.goal)}</div>${wsTask('★','どんな場面？',`<p>${safe(d.scene)}</p><p><b>${safe(d.instruction)}</b></p>`)}${middle}${wsTask(3,'ふりかえろう',`<p>${safe(d.reflect)}　${more}</p><div class="ws-reflect"><span>□ よかった</span><span>□ ふつう</span><span>□ つぎは変えたい</span></div>${lines}`)}<div class="ws-footer"><span>自分で選べたことも、大切な一歩。</span><span>自立活動 支援ナビ</span></div></article>`;
+ return `<article class="ws-paper ${light?'ws-light':''}"><div class="ws-kicker">MY SUPPORT WORKSHEET</div><h1>${safe(d.title)}</h1><div class="ws-meta"><span>きょうの自立活動</span><span>ひづけ：　　月　　日</span></div><div class="ws-purpose"><b>めあて：</b>${safe(d.goal)}</div>${wsTask('★',d.type==='subject'?'今日の課題':'どんな場面？',`<p>${safe(d.scene)}</p><p><b>${safe(d.instruction)}</b></p>`)}${middle}${wsTask(3,'ふりかえろう',`<p>${safe(d.reflect)}　${more}</p><div class="ws-reflect"><span>□ よかった</span><span>□ ふつう</span><span>□ つぎは変えたい</span></div>${lines}`)}<div class="ws-footer"><span>自分で選べたことも、大切な一歩。</span><span>自立活動 支援ナビ</span></div></article>`;
 }
 function renderWorksheetPreview(d){const host=$('ws-preview');if(host)host.innerHTML=worksheetPaper(d)}
 function collectWorksheetDraft(){const d=state.worksheetDraft;if(!d||$('ws-editor').classList.contains('hide')){toast('先にワークシートを作成してください');return null}
@@ -438,7 +460,7 @@ function collectWorksheetDraft(){const d=state.worksheetDraft;if(!d||$('ws-edito
  return {...d,title,goal:field('ws-edit-goal'),scene:field('ws-edit-scene'),instruction:field('ws-edit-instruction'),items,reflect:field('ws-edit-reflect'),notes:field('ws-edit-notes')};}
 function refreshWorksheet(){const p=collectWorksheetDraft();if(!p)return;state.worksheetDraft=p;renderWorksheetPreview(p);toast('プレビューを更新しました')}
 function worksheetPrint(p){if(!p)return;$('print-sheet').innerHTML=worksheetPaper(p);window.print()}
-function worksheetText(p){return `自立活動ワークシート：${p.title}\n対象：${p.grade}　形式：${WORK_TYPES[p.type]}\nめあて：${p.goal}\n場面：${p.scene}\n指示：${p.instruction}\n\n選択肢・ステップ\n${p.items.map((v,i)=>`${i+1}. ${v}`).join('\n')}\n\nふりかえり：${p.reflect}\n\n[教員用メモ／印刷しない] ${p.notes||''}\n元カード：${p.card}・${p.source}`;}
+function worksheetText(p){return `自立活動ワークシート：${p.title}\n対象：${p.grade}　形式：${WORK_TYPES[p.type]}${p.subject?`　教科：${p.subject}`:''}\nめあて：${p.goal}\n場面：${p.scene}\n指示：${p.instruction}\n\n選択肢・ステップ\n${p.items.map((v,i)=>`${i+1}. ${v}`).join('\n')}\n\nふりかえり：${p.reflect}\n\n[教員用メモ／印刷しない] ${p.notes||''}\n元カード：${p.card}・${p.source}`;}
 function saveWorksheet(){const p=collectWorksheetDraft();if(!p)return;const i=state.worksheets.findIndex(x=>x.id===p.id);if(i>=0)state.worksheets[i]=p;else state.worksheets.unshift(p);state.worksheetDraft=p;save();renderSavedWorksheets();toast('ワークシートを保存しました')}
 function renderSavedWorksheets(){const host=$('ws-saved');if(!host)return;host.innerHTML=state.worksheets.length?state.worksheets.map((p,i)=>`<div class="lesson-card-item"><div class="records-date">${safe(p.created)} ・ ${safe(p.grade)} ・ ${safe(WORK_TYPES[p.type]||p.type)}</div><h3>${safe(p.title)}</h3><p>${safe(short(p.goal||''))}</p><div class="actionrow"><button class="button-light button-small" data-edit-ws="${i}">再編集</button><button class="button-ghost button-small" data-print-ws="${i}">印刷/PDF</button><button class="button-ghost button-small" data-copy-ws="${i}">コピー</button><button class="button-ghost button-small" data-del-ws="${i}">削除</button></div></div>`).join(''):'<div class="empty">まだ保存したワークシートはありません。カードを選んで作成できます。</div>'}
 function editWorksheet(i){const p=state.worksheets[i];if(!p)return;nav('worksheets');$('ws-card').value=p.card;$('ws-grade').value=p.grade;$('ws-type').value=p.type;$('ws-writing').value=p.writing;state.worksheetDraft=JSON.parse(JSON.stringify(p));renderWorksheetEditor(state.worksheetDraft);$('ws-editor').scrollIntoView({behavior:'smooth',block:'start'})}
