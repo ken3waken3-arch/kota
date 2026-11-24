@@ -18,4 +18,4 @@ Cloudflare Pages のプロジェクト名が空いていれば `jiritsukatsudou`
 4. Build command は空欄、Build output directory は `site` にします。
 5. Deploy を実行し、表示された `*.pages.dev` URLを確認します。
 
-この版は既存のアカウント同期APIを使わないため、保存内容は同期版と共有されません。同期を続ける場合は既存の `jiritu.ken3-wa-ken3.chatgpt.site` を使ってください。
+この版は既存のアカウント同期APIを使わないため、保存内容は同期版と共有されません。同期版を使うと、保存内容はアカウント単位で同期されます。
