@@ -119,12 +119,12 @@ function renderWorksheetEditor(d){
  '<div class="ws-subject-editor-fields">'+(d.subjectFields||[]).map((f,i)=>wsField('学習欄の指示 '+(i+1),'ws-edit-subject-field-'+i,f.prompt,2)).join('')+'</div>'+ 
  wsField('別の例で確かめること','ws-edit-subject-transfer',d.subjectTransfer||'',2)+'</div>') : '';
  const worksheetFields='<div class="ws-editor-grid">'+wsField('タイトル','ws-edit-title',d.title,1)+wsField('今日のめあて','ws-edit-goal',d.goal,2)+wsField('場面の説明','ws-edit-scene',d.scene,2)+wsField('指示文','ws-edit-instruction',d.instruction,2)+genericStepEditor+subjectEditor+wsField('振り返りの問い','ws-edit-reflect',d.reflect,2)+wsField('教師用メモ（印刷しない）','ws-edit-notes',d.notes||'',4)+'</div>';
- const quickProfile=editorProfile,quickHint=quickProfile&&quickProfile.quickHint||'空欄でも作成できます。授業固有の教材や問題番号を使う場合だけ入力してください。';
+ const quickProfile=editorProfile,quickHint=quickProfile&&quickProfile.quickHint||'印刷する例題は初期設定済みです。授業固有の教材・単元に合わせるときだけ差し替えてください。';
  const quickEditor=structuredEditor?('<div class="ws-subject-quick"><h3 class="section-title">'+safe(quickProfile&&quickProfile.quickTitle|| (d.subject?'教科ワークシート（自動作成）':'SSTシート（自動作成）'))+'</h3><p class="section-sub">'+safe(quickHint)+'</p>'+wsField(worksheetSubjectMaterialLabel(d),'ws-edit-subject-material',d.subjectMaterial||'',3)+'<details class="ws-subject-advanced"><summary>必要なときだけ内容を調整</summary>'+worksheetFields+'</details></div>') : worksheetFields;
  host.innerHTML='<div class="panel"><div class="lesson-preview-head"><div><span class="eyebrow">EDIT · PREVIEW · PRINT</span><h2 class="section-title">内容を編集する</h2></div><span class="pill">'+safe(WORK_TYPES[d.type]||'教材')+'</span></div>'+
  '<p class="section-sub">児童生徒に渡す言葉だけを編集します。診断名や個人情報は入れず、選択できる表現と書く量を調整してください。</p>'+quickEditor+
  '<div class="actionrow space-top"><button class="button-light" data-act="refresh-worksheet">↻ プレビュー更新</button><button class="button-primary" data-act="save-worksheet">✓ ワークシート保存</button><button class="button-light" data-act="print-current-worksheet">印刷／PDF</button><button class="button-ghost" data-act="download-current-worksheet">テキスト保存</button></div>'+
- '<p class="caption space-top">教材を入力しなくても作成できます。必要ならプレビューで1枚のA4に収まるか確認し、本人に合わせて調整してください。</p><div class="ws-preview-wrap" id="ws-preview"></div></div>';renderWorksheetPreview(d);
+ '<p class="caption space-top">例題は初期設定済みです。実際の単元に合わせて必要な所だけ差し替え、プレビューでA4に収まるか確認してください。</p><div class="ws-preview-wrap" id="ws-preview"></div></div>';renderWorksheetPreview(d);
 }
 function worksheetFoundationWork(d,p){
  const material=String(d.subjectMaterial||'').trim()||p.exampleMaterial||'',safeMaterial=safe(material);
