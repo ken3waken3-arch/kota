@@ -1,4 +1,4 @@
-const CACHE_NAME = "jiritsu-navi-github-v10";
+const CACHE_NAME = "jiritsu-navi-github-v11";
 const APP_ENTRY = new URL("./index.html", self.location.href);
 const APP_PATCH = new URL("./worksheet-enhancement.js", self.location.href);
 const APP_SHELL = [APP_ENTRY, new URL("./manifest.webmanifest", self.location.href), new URL("./icon.svg", self.location.href), APP_PATCH];
