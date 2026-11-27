@@ -1,7 +1,8 @@
-const CACHE_NAME = "jiritsu-navi-github-v11";
+const CACHE_NAME = "jiritsu-navi-github-v12";
 const APP_ENTRY = new URL("./index.html", self.location.href);
 const APP_PATCH = new URL("./worksheet-enhancement.js", self.location.href);
-const APP_SHELL = [APP_ENTRY, new URL("./manifest.webmanifest", self.location.href), new URL("./icon.svg", self.location.href), APP_PATCH];
+const APP_LOCATION = new URL("./save-location.js", self.location.href);
+const APP_SHELL = [APP_ENTRY, new URL("./manifest.webmanifest", self.location.href), new URL("./icon.svg", self.location.href), APP_PATCH, APP_LOCATION];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -15,8 +16,11 @@ self.addEventListener("activate", (event) => {
 async function worksheetResponse(response) {
   if (!response) return new Response("一度オンラインで開くと、オフラインでも使えます。", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   const html = await response.text();
-  if (html.includes("worksheet-enhancement.js")) return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
-  const updated = html.replace(/<\/body>/i, '<script src="./worksheet-enhancement.js"></script></body>');
+  let scripts = "";
+  if (!html.includes("worksheet-enhancement.js")) scripts += '<script src="./worksheet-enhancement.js"></script>';
+  if (!html.includes("save-location.js")) scripts += '<script src="./save-location.js"></script>';
+  if (!scripts) return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
+  const updated = html.replace(/<\/body>/i, `${scripts}</body>`);
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.delete("content-encoding");
@@ -35,4 +39,3 @@ self.addEventListener("fetch", (event) => {
   }
   if (APP_SHELL.some((asset) => asset.href === url.href)) event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
-
