@@ -97,6 +97,11 @@
   `;
   document.head.insertAdjacentHTML("beforeend", `<style>${css}</style>`);
 
+  const legacyAiNote = [...document.querySelectorAll("body *")].find((el) =>
+    el.children.length === 0 && el.textContent.includes("生成AIではなく")
+  );
+  if (legacyAiNote) legacyAiNote.textContent = "310カード検索は登録済みの内容を提示します。AI相談では質問と関連カードを送信して具体案を作ります。個人情報は入力しないでください。";
+
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
   if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.0";
