@@ -108,13 +108,46 @@
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.2";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.3";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
     if (about) {
       const h = about.querySelector(".section-title");
       if (h) h.textContent = "出典・参考資料と編集方針";
+    }
+  }
+
+  updateFeatureSummary();
+
+  function updateFeatureSummary() {
+    const about = document.getElementById("view-about");
+    if (!about) return;
+    const stages = [...about.querySelectorAll(".detail-stage")];
+    const featureStage = stages.find((stage) => stage.querySelector("h4")?.textContent.includes("この増補版でできること"));
+    if (featureStage) {
+      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.3）";
+      const list = featureStage.querySelector("ul");
+      if (list) list.innerHTML = [
+        "310件の支援カードを場面・教科から検索し、関連する自立活動の項目を確認する",
+        "AIに相談し、関連カードをもとに支援案・15〜20分の指導例・具体的なワークシート案を作る（オンライン時）",
+        "AIの回答で照合したアプリ内カードと出典を確認する",
+        "支援プランを作成し、印刷・コピー・テキスト出力する",
+        "児童生徒用A4ワークシートを8形式で作成、編集・保存・印刷する",
+        "15・20・45・50分の指導計画を作成・編集・保存・印刷する",
+        "実践記録をこの端末に保存し、JSON形式でバックアップする",
+        "一度読み込んだ支援カード検索をオフラインで利用する"
+      ].map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    }
+    const unavailableStage = stages.find((stage) => stage.querySelector("h4")?.textContent.trim() === "まだできないこと");
+    if (unavailableStage) {
+      const list = unavailableStage.querySelector("ul");
+      if (list) list.innerHTML = [
+        "外部の論文・ウェブを自動検索して最新情報を追加すること",
+        "実施効果の因果推定や心理・医学的な診断",
+        "複数端末・校内クラウドへの保存内容の同期",
+        "教材イラストの自動生成やアカウント管理"
+      ].map((item) => `<li>${escapeHtml(item)}</li>`).join("");
     }
   }
 
