@@ -95,7 +95,7 @@ ${evidenceText}
         { role: "system", content: system },
         { role: "user", content: `相談の種類：${mode === "worksheet" ? "ワークシート案" : "支援相談"}\n相談：${question}` }
       ],
-      max_tokens: 1000,
+      max_completion_tokens: 1200,
       temperature: 0.25
     });
     const answer = extractAnswer(result);
