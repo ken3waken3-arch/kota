@@ -211,7 +211,7 @@
     status.textContent = "プロジェクト内の支援カードを照合して回答を作っています…";
     const evidence = findRelevantCards(text, mode);
     try {
-      const response = await fetch("./api/consult", {
+      const response = await fetch("./api/consult?debug=shape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text, mode, evidence })
