@@ -98,6 +98,15 @@ ${evidenceText}
       max_completion_tokens: 1200,
       temperature: 0.25
     });
+    if (new URL(request.url).searchParams.get("debug") === "shape") {
+      const content = result?.choices?.[0]?.message?.content;
+      return json({ answer: JSON.stringify({
+        contentType: typeof content,
+        contentLength: typeof content === "string" ? content.length : null,
+        trimmedLength: typeof content === "string" ? content.trim().length : null,
+        finishReason: result?.choices?.[0]?.finish_reason || null
+      }) });
+    }
     const answer = extractAnswer(result);
     if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
     return json({ answer: answer.slice(0, 7000) });
