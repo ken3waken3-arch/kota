@@ -97,14 +97,18 @@
   `;
   document.head.insertAdjacentHTML("beforeend", `<style>${css}</style>`);
 
-  const legacyAiNote = [...document.querySelectorAll("body *")].find((el) =>
-    el.children.length === 0 && el.textContent.includes("生成AIではなく")
-  );
-  if (legacyAiNote) legacyAiNote.textContent = "310カード検索は登録済みの内容を提示します。AI相談では質問と関連カードを送信して具体案を作ります。個人情報は入力しないでください。";
+  const legacyAiWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let legacyAiText;
+  while ((legacyAiText = legacyAiWalker.nextNode())) {
+    if (legacyAiText.nodeValue.includes("生成AIではなく")) {
+      legacyAiText.nodeValue = "310カード検索は登録済みの内容を提示します。AI相談では質問と関連カードを送信して具体案を作ります。個人情報は入力しないでください。";
+      break;
+    }
+  }
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.0";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.1";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
@@ -207,7 +211,7 @@
     status.textContent = "プロジェクト内の支援カードを照合して回答を作っています…";
     const evidence = findRelevantCards(text, mode);
     try {
-      const response = await fetch("./api/consult?debug=shape", {
+      const response = await fetch("./api/consult", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text, mode, evidence })
