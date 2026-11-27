@@ -98,15 +98,34 @@ ${evidenceText}
       max_tokens: 1000,
       temperature: 0.25
     });
-    const answer = typeof result?.response === "string"
-      ? result.response
-      : typeof result?.choices?.[0]?.message?.content === "string"
-        ? result.choices[0].message.content
-        : "回答を作成できませんでした。質問を短くして再度お試しください。";
+    const answer = extractAnswer(result);
+    if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
     return json({ answer: answer.slice(0, 7000) });
   } catch (_) {
     return json({ message: "AIの応答に失敗しました。少し待ってから再度お試しください。" }, 503);
   }
+}
+
+function extractAnswer(value) {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) return value.map(extractAnswer).filter(Boolean).join("\n");
+  if (!value || typeof value !== "object") return "";
+
+  for (const key of ["response", "output_text", "text", "answer", "generated_text"]) {
+    const text = extractAnswer(value[key]);
+    if (text) return text;
+  }
+  if (Array.isArray(value.choices)) {
+    const text = value.choices.map((choice) => extractAnswer(
+      choice?.message?.content ?? choice?.delta?.content ?? choice?.text ?? choice?.content
+    )).filter(Boolean).join("\n");
+    if (text) return text;
+  }
+  for (const key of ["content", "message", "output"]) {
+    const text = extractAnswer(value[key]);
+    if (text) return text;
+  }
+  return "";
 }
 
 function normalizeEvidence(input) {
