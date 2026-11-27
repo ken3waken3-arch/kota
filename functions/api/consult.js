@@ -98,6 +98,9 @@ ${evidenceText}
       max_tokens: 1000,
       temperature: 0.25
     });
+    if (new URL(request.url).searchParams.get("debug") === "shape") {
+      return json({ answer: JSON.stringify(aiResponseShape(result)) });
+    }
     console.log("AI response structure", JSON.stringify(aiResponseShape(result)));
     const answer = extractAnswer(result);
     if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
