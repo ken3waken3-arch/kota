@@ -108,7 +108,7 @@
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.1";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.2";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
@@ -211,7 +211,7 @@
     status.textContent = "プロジェクト内の支援カードを照合して回答を作っています…";
     const evidence = findRelevantCards(text, mode);
     try {
-      const response = await fetch("./api/consult?debug=shape", {
+      const response = await fetch("./api/consult", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text, mode, evidence })
