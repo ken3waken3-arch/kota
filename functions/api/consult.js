@@ -98,27 +98,12 @@ ${evidenceText}
       max_tokens: 1000,
       temperature: 0.25
     });
-    if (new URL(request.url).searchParams.get("debug") === "shape") {
-      return json({ answer: JSON.stringify(aiResponseShape(result)) });
-    }
-    console.log("AI response structure", JSON.stringify(aiResponseShape(result)));
     const answer = extractAnswer(result);
     if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
     return json({ answer: answer.slice(0, 7000) });
   } catch (_) {
     return json({ message: "AIの応答に失敗しました。少し待ってから再度お試しください。" }, 503);
   }
-}
-
-function aiResponseShape(value, depth = 0) {
-  const safeKeys = new Set(["response", "output_text", "text", "answer", "generated_text", "choices", "message", "content", "output", "reasoning", "finish_reason", "tool_calls", "usage"]);
-  if (depth > 4) return { type: Array.isArray(value) ? "array" : typeof value };
-  if (Array.isArray(value)) return { type: "array", length: value.length, first: value.length ? aiResponseShape(value[0], depth + 1) : null };
-  if (value === null) return { type: "null" };
-  if (typeof value !== "object") return { type: typeof value };
-  const fields = {};
-  for (const key of Object.keys(value)) if (safeKeys.has(key)) fields[key] = aiResponseShape(value[key], depth + 1);
-  return { type: "object", fields };
 }
 
 function extractAnswer(value) {
