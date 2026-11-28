@@ -1,0 +1,20 @@
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/service-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/consultation.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/worksheet-enhancement.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/save-location.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: no-cache, must-revalidate
