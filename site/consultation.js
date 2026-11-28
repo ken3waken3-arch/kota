@@ -88,12 +88,17 @@
     .consult-submit:disabled{opacity:.5;cursor:not-allowed}
     .consult-status{font-size:13px;color:#60717a;margin:10px 0 0;min-height:1.5em}
     .consult-answer{white-space:pre-wrap;line-height:1.8;background:#f5f9f6;border:1px solid #dce5df;border-radius:12px;padding:16px;margin:16px 0 0;color:#142c35;overflow-wrap:anywhere}
+    .consult-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .consult-actions[hidden],.consult-action[hidden]{display:none}
+    .consult-action{border:1px solid #cadcd4;border-radius:10px;background:#fff;padding:9px 12px;color:#31544e;font:inherit;font-weight:750}
+    .consult-print-view{display:none}
     .consult-citations{font-size:12px;color:#53686d;margin:10px 0 0;line-height:1.7}
     .consult-citations a,.source-item a{color:#0a665f;text-decoration:underline;text-underline-offset:2px}
     .consult-offline{font-size:12px;color:#60717a;margin:8px 0}
     .source-list .source-item{line-height:1.7}
     .source-update-date{font-size:12px;color:#60717a;margin:-7px 0 14px}
     @media(max-width:620px){#consult-dialog{width:calc(100vw - 14px);max-height:94vh}.consult-head,.consult-body{padding-left:14px;padding-right:14px}}
+    @media print{body.consult-printing>*{display:none!important}body.consult-printing>#consult-print-view{display:block!important;position:static!important;width:auto!important;margin:0!important;padding:0!important;color:#000!important;background:#fff!important}#consult-print-view pre{white-space:pre-wrap;overflow-wrap:anywhere;font:16pt/1.7 sans-serif;margin:0}@page{margin:16mm}}
   `;
   document.head.insertAdjacentHTML("beforeend", `<style>${css}</style>`);
 
@@ -108,7 +113,7 @@
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.6";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 教科別ワークシート v1.8.7";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
@@ -126,11 +131,11 @@
     const stages = [...about.querySelectorAll(".detail-stage")];
     const featureStage = stages.find((stage) => stage.querySelector("h4")?.textContent.includes("この増補版でできること"));
     if (featureStage) {
-      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.6）";
+      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.7）";
       const list = featureStage.querySelector("ul");
       if (list) list.innerHTML = [
         "310件の支援カードを場面・教科から検索し、関連する自立活動の項目を確認する",
-        "AIに相談し、関連カードをもとに支援案・15〜20分の指導例・具体的なワークシート案を作る（オンライン時）",
+        "AIに相談し、関連カードをもとに国語・英語・数学・理科・社会・保健体育・技術家庭の問題・語群・正答付き教材案を作る（オンライン時）",
         "AIの回答で照合したアプリ内カードと出典を確認する",
         "支援プランを作成し、印刷・コピー・テキスト出力する",
         "児童生徒用A4ワークシートを8形式で作成、編集・保存・印刷する",
@@ -177,10 +182,12 @@
         <button type="button" id="consult-send" class="consult-submit" disabled>相談する</button>
         <p id="consult-status" class="consult-status" role="status" aria-live="polite">AI相談にはインターネット接続が必要です。オフラインではカード検索・ワークシート作成を利用してください。</p>
         <div id="consult-answer" class="consult-answer" hidden></div>
+        <div id="consult-actions" class="consult-actions" hidden><button type="button" id="consult-print" class="consult-action">児童用を印刷</button><button type="button" id="consult-copy" class="consult-action">回答をコピー</button></div>
         <div id="consult-citations" class="consult-citations" hidden></div>
       </div>
     </dialog>
   `);
+  document.body.insertAdjacentHTML("beforeend", `<section id="consult-print-view" class="consult-print-view" aria-label="印刷する児童用ワークシート"><pre></pre></section>`);
 
   const dialog = document.getElementById("consult-dialog");
   const question = document.getElementById("consult-question");
@@ -188,6 +195,10 @@
   const send = document.getElementById("consult-send");
   const status = document.getElementById("consult-status");
   const answer = document.getElementById("consult-answer");
+  const actions = document.getElementById("consult-actions");
+  const printButton = document.getElementById("consult-print");
+  const copyButton = document.getElementById("consult-copy");
+  const printView = document.querySelector("#consult-print-view pre");
   const citations = document.getElementById("consult-citations");
   let mode = "support";
   let apiReady = null;
@@ -206,9 +217,14 @@
     button.addEventListener("click", () => {
       mode = button.dataset.consultMode;
       document.querySelectorAll("[data-consult-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+      actions.hidden = true;
+      answer.hidden = true;
+      citations.hidden = true;
     });
   });
   send.addEventListener("click", submitQuestion);
+  printButton.addEventListener("click", printStudentWorksheet);
+  copyButton.addEventListener("click", copyAnswer);
 
   function openDialog() {
     if (!dialog.open) dialog.showModal();
@@ -240,6 +256,7 @@
     if (!consent.checked || !text || send.disabled) return;
     send.disabled = true;
     answer.hidden = true;
+    actions.hidden = true;
     citations.hidden = true;
     status.textContent = "プロジェクト内の支援カードを照合して回答を作っています…";
     const evidence = findRelevantCards(text, mode);
@@ -255,6 +272,8 @@
       }
       answer.textContent = data.answer || "回答を作成できませんでした。質問を短くして再度お試しください。";
       answer.hidden = false;
+      actions.hidden = false;
+      printButton.hidden = mode !== "worksheet" || !extractStudentWorksheet(answer.textContent);
       citations.innerHTML = citationHtml(evidence);
       citations.hidden = false;
       status.textContent = "回答案です。本人の様子・学校の計画・安全面に照らして調整してください。";
@@ -263,6 +282,43 @@
     } finally {
       send.disabled = false;
       updateSend();
+    }
+  }
+
+  function extractStudentWorksheet(value) {
+    const text = String(value || "");
+    const marker = "【児童用・印刷面】";
+    const start = text.indexOf(marker);
+    if (start < 0) return "";
+    const contentStart = start + marker.length;
+    const end = text.indexOf("【教員用・印刷しない】", contentStart);
+    return text.slice(contentStart, end < 0 ? text.length : end).trim();
+  }
+
+  function printStudentWorksheet() {
+    const studentCopy = extractStudentWorksheet(answer.textContent);
+    if (!studentCopy) {
+      status.textContent = "印刷する児童用の問題が見つかりません。ワークシート案を作り直してください。";
+      return;
+    }
+    printView.textContent = studentCopy;
+    document.body.classList.add("consult-printing");
+    let resetTimer;
+    const cleanup = () => {
+      window.clearTimeout(resetTimer);
+      document.body.classList.remove("consult-printing");
+    };
+    window.addEventListener("afterprint", cleanup, { once: true });
+    resetTimer = window.setTimeout(cleanup, 120000);
+    window.print();
+  }
+
+  async function copyAnswer() {
+    try {
+      await navigator.clipboard.writeText(answer.textContent || "");
+      status.textContent = "回答をコピーしました。";
+    } catch (_) {
+      status.textContent = "この端末ではコピーできませんでした。回答を長押しして選択してください。";
     }
   }
 

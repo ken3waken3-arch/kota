@@ -3,6 +3,20 @@ const MAX_BODY_BYTES = 36000;
 const MAX_QUESTION_CHARS = 1500;
 const MAX_EVIDENCE_CARDS = 4;
 const requestsByIp = new Map();
+const WORKSHEET_TOOL = {
+  name: "create_printable_worksheet",
+  description: "Create a short, complete, printable student worksheet and its teacher answer key.",
+  parameters: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "A short student-friendly worksheet title." },
+      student_content: { type: "string", description: "One to three numbered, ready-to-print questions with all actual text, examples, choices, and answer spaces. No name/date fields or placeholder instructions." },
+      teacher_answers: { type: "string", description: "The answer to every student question, numbered in the same order." },
+      adjustment: { type: "string", description: "Optional one-sentence difficulty adjustment for the teacher." }
+    },
+    required: ["title", "student_content", "teacher_answers"]
+  }
+};
 
 const REFERENCE_CONTEXT = [
   "アプリ内資料：自立活動支援ナビの統合310カードと、第1〜8巻の編集資料。相談ごとに関連カード最大4件の本文を受け取る。元PDF全文やウェブ検索結果は受け取らない。カードは相談の照合用であり、個々の効果が実証済みとは限らない。",
@@ -107,40 +121,39 @@ ${answerFormat}
   try {
     const modelOptions = {
       chat_template_kwargs: { enable_thinking: false },
-      temperature: 0.2
+      temperature: mode === "worksheet" ? 0.1 : 0.2
     };
-    const result = await env.AI.run(MODEL, {
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: `相談の種類：${mode === "worksheet" ? "ワークシート案" : "支援相談"}\n相談：${question}` }
-      ],
-      max_completion_tokens: mode === "worksheet" ? 1200 : 2048,
-      ...modelOptions
-    });
-    let answer = extractAnswer(result);
-    if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
-    if (mode === "worksheet" && !isPrintableWorksheet(answer)) {
-      const repair = await env.AI.run(MODEL, {
-        messages: [
-          { role: "system", content: `あなたは教材の校正者です。次の相談への回答案を、児童生徒用にそのまま印刷できる完成形に直してください。元の文章の説明は捨て、次の2見出しと必要な内容だけを返します。
-【児童用・印刷面】
-タイトル
-1〜3問の具体的な問題。本文・目標の文字/単語/数値・選択肢・記入欄を実際に書く。
-【教員用・印刷しない】
-番号ごとの正答。
-氏名欄・長い空白・「ここに〜」・未作成の図や点線の指示は禁止。選択肢は重複させず正答は一つ。漢字は実際の字を表示。英語は実際の単語を表示。算数は具体的な式を表示。日本語として自然か、問題と正答が一致するか確認してから返す。余分な前置きは不要。` },
-          { role: "user", content: `相談：${question}\n\n関連カード：\n${evidenceText}\n\n校正する回答案：\n${answer}` }
-        ],
-        max_completion_tokens: 1200,
-        ...modelOptions
-      });
-      const repaired = extractAnswer(repair);
-      if (isPrintableWorksheet(repaired)) answer = repaired;
-      else {
-        const fallback = buildFallbackWorksheet(question, evidence);
-        if (!fallback) return json({ message: "印刷用の形に整えられませんでした。教科と作りたい問題を指定して再度お試しください。" }, 502);
-        answer = `【簡易案】AIの回答に印刷上の不備があったため、相談内容と関連カードをもとにした短い案を表示します。\n\n${fallback}`;
+    const messages = [
+      { role: "system", content: system },
+      { role: "user", content: `相談の種類：${mode === "worksheet" ? "ワークシート案" : "支援相談"}\n相談：${question}` }
+    ];
+    let answer;
+    if (mode === "worksheet") {
+      let worksheetResult = null;
+      try {
+        worksheetResult = await env.AI.run(MODEL, {
+          messages,
+          tools: [WORKSHEET_TOOL],
+          tool_choice: "required",
+          max_completion_tokens: 1200,
+          ...modelOptions
+        });
+      } catch (_) {
+        // If the model cannot return the required worksheet structure, use the
+        // source-card fallback below instead of showing a broken printout.
       }
+      answer = formatWorksheetToolResult(worksheetResult);
+      if (!isPrintableWorksheet(answer)) {
+        const fallback = buildFallbackWorksheet(question, evidence);
+        if (!isPrintableWorksheet(fallback)) {
+          return json({ message: "ワークシート案を印刷できる形に整えられませんでした。教科と学習内容を短く指定して、もう一度お試しください。" }, 502);
+        }
+        answer = `【簡易案】回答を印刷用の形に整えられなかったため、照合カードをもとにした短い案を表示します。\n\n${fallback}`;
+      }
+    } else {
+      const result = await env.AI.run(MODEL, { messages, max_completion_tokens: 2048, ...modelOptions });
+      answer = extractAnswer(result);
+      if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
     }
     const answerWithoutModelReferences = answer
       .replace(/(?:【参照カード】|参照カード\s*[:：])[\s\S]*$/i, "")
@@ -176,6 +189,23 @@ function extractAnswer(value) {
   return "";
 }
 
+function formatWorksheetToolResult(result) {
+  const call = result?.tool_calls?.find((item) => item?.name === WORKSHEET_TOOL.name)
+    || result?.choices?.[0]?.message?.tool_calls?.find((item) => item?.function?.name === WORKSHEET_TOOL.name);
+  if (!call) return "";
+  let args = call.arguments ?? call.function?.arguments;
+  if (typeof args === "string") {
+    try { args = JSON.parse(args); } catch (_) { return ""; }
+  }
+  if (!args || typeof args !== "object") return "";
+  const title = limit(args.title, 100);
+  const studentContent = limit(args.student_content, 1800).trim();
+  const teacherAnswers = limit(args.teacher_answers, 900).trim();
+  const adjustment = limit(args.adjustment, 250).trim();
+  if (!title || !studentContent || !teacherAnswers) return "";
+  return `【児童用・印刷面】\n${title}\n${studentContent}\n【教員用・印刷しない】\n正答：${teacherAnswers}${adjustment ? `\n調整案：${adjustment}` : ""}`;
+}
+
 function isPrintableWorksheet(value) {
   const text = typeof value === "string" ? value.trim() : "";
   const studentCopy = text.split("【教員用・印刷しない】")[0] || "";
@@ -194,6 +224,7 @@ function isPrintableWorksheet(value) {
 function buildFallbackWorksheet(question, evidence) {
   const q = String(question || "");
   const subjects = new Set(evidence.map((card) => card.subject).filter(Boolean));
+  const primaryId = String(evidence[0]?.id || "");
   const subject = subjects.has("国語") || /国語|漢字|作文|音読|読解/.test(q) ? "国語"
     : subjects.has("英語") || /英語|英単語|英文|スペル|英作文/.test(q) ? "英語"
     : subjects.has("数学") || /算数|数学|足し算|たし算|引き算|ひき算|分数|小数|計算/.test(q) ? "数学"
@@ -206,33 +237,65 @@ function buildFallbackWorksheet(question, evidence) {
   if (subject === "国語") {
     const kanji = { 山: ["やま", "山に のぼります。"], 川: ["かわ", "川で あそびます。"], 日: ["ひ", "日が のぼります。"], 月: ["つき", "月を 見ます。"], 木: ["き", "木を 見ます。"], 人: ["ひと", "人が います。"], 花: ["はな", "花が さきます。"], 水: ["みず", "水を のみます。"], 火: ["ひ", "火を けします。"], 口: ["くち", "口を あけます。"], 目: ["め", "目を とじます。"], 大: ["おおきい", "大きな 山です。"], 小: ["ちいさい", "小さな 花です。"] };
     const requested = q.match(/漢字\s*[「『]([一-龯々]{1,2})[」』]/)?.[1];
-    const target = kanji[requested] ? requested : "山";
-    const [reading, sentence] = kanji[target];
-    return `【児童用・印刷面】\nかんじ「${target}」\n1．見本を見て、読みを書きましょう。\n見本：${target}　読み：＿＿＿\n2．（　）に入る字を、語群から一つ選びましょう。\n${sentence}\n語群：${target}　川　日\n3．見本と同じ字を書きましょう。\n見本：${target}\n□　□\n【教員用・印刷しない】\n正答：1．${reading}　2．${target}　3．${target}`;
+    if (kanji[requested] || /漢字|D01-13|D01-14/.test(`${q} ${primaryId}`)) {
+      if (requested && !kanji[requested]) {
+        const choices = [requested, ...["山", "川", "日", "木"].filter((item) => item !== requested).slice(0, 2)];
+        return `【児童用・印刷面】\n漢字「${requested}」を見て書こう\n1．見本と同じ漢字を一つ選びましょう。　${choices.join("　／　")}\n2．見本を見て、同じ漢字を書きましょう。\n見本：${requested}　＿＿＿\n3．「${requested}」を使った言葉を書きましょう。　＿＿＿\n【教員用・印刷しない】\n正答：1．${requested}　2．${requested}　3．正答例は学習した言葉に合わせる（例：森林）`;
+      }
+      const target = kanji[requested] ? requested : "山";
+      const [reading, sentence] = kanji[target];
+      const sentenceWithBlank = sentence.replace(target, "（　）");
+      const choices = [target, ...["山", "川", "日", "木"].filter((item) => item !== target).slice(0, 2)];
+      return `【児童用・印刷面】\nかんじ「${target}」\n1．見本を見て、読みを書きましょう。\n見本：${target}　読み：＿＿＿\n2．（　）に入る字を一つ選びましょう。\n${sentenceWithBlank}\n語群：${choices.join("　／　")}\n3．見本と同じ字を書きましょう。\n見本：${target}\n□　□\n【教員用・印刷しない】\n正答：1．${reading}　2．${target}　3．${target}`;
+    }
+    if (/D01-08|D01-09|作文/.test(`${q} ${primaryId}`)) return `【児童用・印刷面】\n文の組み立て\nテーマ：好きな遊び\n1．文を完成させましょう。\nわたしは＿＿＿が好きです。\n2．理由を一つ選びましょう。\n楽しい　／　友だちとできる　／　体を動かせる\n3．理由の文を完成させましょう。\n理由は＿＿＿＿＿＿からです。\n【教員用・印刷しない】\n正答例：1．サッカー　2．体を動かせる　3．体を動かせるからです。別の自然な答えも可。`;
+    if (/D01-05|指示語/.test(`${q} ${primaryId}`)) return `【児童用・印刷面】\n「それ」が指すものを見つけよう\n文：ゆうたは青いかさを持って出かけました。雨がやんだので、それをたたみました。\n1．「それ」はどれですか。　青いかさ　／　雨\n2．答えの手がかりになった言葉に線を引きましょう。\n3．「それ」を具体的な言葉に置きかえて文を書きましょう。\n雨がやんだので、＿＿＿＿をたたみました。\n【教員用・印刷しない】\n正答：1．青いかさ　2．青いかさ　3．雨がやんだので、青いかさをたたみました。`;
+    return `【児童用・印刷面】\n短い文を読もう\n文：みおさんは赤い傘を持って学校へ行きました。雨が止んだので、傘をたたみました。\n1．だれが学校へ行きましたか。　＿＿＿＿\n2．何色の傘を持っていましたか。　＿＿＿＿\n3．なぜ傘をたたみましたか。　＿＿＿＿\n【教員用・印刷しない】\n正答：1．みおさん　2．赤い傘　3．雨が止んだから。`;
   }
   if (subject === "英語") {
+    if (/D02-04|D02-09|D02-10|語順|英作文/.test(`${q} ${primaryId}`)) return `【児童用・印刷面】\n英文の語順\n1．カードを正しい順番に並べましょう。\napples ／ like ／ I\n＿＿＿＿＿＿＿＿＿＿＿＿\n2．カードを正しい順番に並べましょう。\nhappy ／ is ／ She\n＿＿＿＿＿＿＿＿＿＿＿＿\n3．文を疑問文にしましょう。\nYou like apples. → ＿＿＿＿＿＿＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．I like apples.　2．She is happy.　3．Do you like apples?`;
+    if (/D02-05/.test(primaryId)) return `【児童用・印刷面】\nis と一般動詞\n1．She（　）happy.　語群：is ／ plays\n2．He（　）tennis.　語群：is ／ plays\n3．They（　）kind.　語群：are ／ play\n【教員用・印刷しない】\n正答：1．is　2．plays　3．are`;
     const target = /\b(?:dog|sun|pen|book|apple)\b/i.test(q) ? q.match(/\b(?:dog|sun|pen|book|apple)\b/i)[0].toLowerCase() : "cat";
-    const meaning = { cat: "ねこ", dog: "いぬ", sun: "たいよう", pen: "ペン", book: "本", apple: "りんご" }[target];
-    return `【児童用・印刷面】\n英単語「${target}」\n1．語と意味を線で結びましょう。\n${target}　　　${meaning}\ndog　　　いぬ\n2．ぬけた文字を選びましょう。\n${target.replace(/a|o|u|e|i/, "□")}　語群：a　o　u\n3．見本を見て書きましょう。\n見本：${target}\n＿＿＿\n【教員用・印刷しない】\n正答：1．${target}—${meaning}、dog—いぬ　2．${target.match(/[aouei]/)?.[0] || "a"}　3．${target}`;
+    const meanings = { cat: "ねこ", dog: "いぬ", sun: "たいよう", pen: "ペン", book: "本", apple: "りんご" };
+    const meaning = meanings[target];
+    const otherMeaning = Object.values(meanings).find((item) => item !== meaning);
+    const missingVowel = target.match(/[aeiou]/i)?.[0]?.toLowerCase() || "a";
+    return `【児童用・印刷面】\n英単語「${target}」\n1．${target} の意味を選びましょう。\n${otherMeaning}　／　${meaning}\n2．ぬけた文字を選びましょう。\n${target.replace(/[aeiou]/i, "□")}　語群：a　／　i　／　u　／　e　／　o\n3．見本を見て書きましょう。\n見本：${target}\n＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．${meaning}　2．${missingVowel}　3．${target}`;
   }
   if (subject === "数学") {
+    if (/D03-09/.test(primaryId)) return `【児童用・印刷面】\n数とものの数\n1．●●●　●はいくつですか。　2　／　3　／　4\n2．●●●●　●はいくつですか。　4　／　5　／　6\n3．数字の「5」と同じ数を選びましょう。　●●●●　／　●●●●●\n【教員用・印刷しない】\n正答：1．4　2．5　3．●●●●●`;
+    if (/D03-01/.test(primaryId)) return `【児童用・印刷面】\n文を式にしよう\n問題：りんごが3こあります。2こもらいました。ぜんぶで何こですか。\n1．使う式を選びましょう。　3＋2　／　3−2\n2．答えを書きましょう。　＿＿こ\n3．どの言葉が手がかりでしたか。　「もらいました」／「ぜんぶで」\n【教員用・印刷しない】\n正答：1．3＋2　2．5こ　3．「もらいました」「ぜんぶで」`;
+    if (/D03-03/.test(primaryId)) return `【児童用・印刷面】\n分数の大きさを比べよう\n1．大きい方に○をつけましょう。　1/2　／　1/4\n2．大きい方に○をつけましょう。　3/4　／　1/4\n3．1/2と同じ大きさを選びましょう。　2/4　／　1/4\n【教員用・印刷しない】\n正答：1．1/2　2．3/4　3．2/4`;
+    if (/D03-10|D03-12/.test(primaryId)) return `【児童用・印刷面】\nたし算\n1．8＋5＝□\n2．7＋6＝□\n3．9＋4＝□\n【教員用・印刷しない】\n正答：1．13　2．13　3．13`;
+    if (/D03-11|D03-13/.test(primaryId)) return `【児童用・印刷面】\nひき算\n1．8−3＝□\n2．12−5＝□\n3．14−6＝□\n【教員用・印刷しない】\n正答：1．5　2．7　3．8`;
     const items = /繰り上がり|くり上がり|10をこえる|二桁/.test(q)
       ? [[8, "+", 5, 13], [7, "+", 6, 13], [9, "+", 4, 13]]
       : /引き算|ひき算|減法|繰り下がり/.test(q)
         ? [[5, "−", 2, 3], [8, "−", 3, 5], [7, "−", 4, 3]]
         : [[2, "+", 3, 5], [4, "+", 1, 5], [5, "−", 2, 3]];
-    return `【児童用・印刷面】\n${/引き算|ひき算|減法|繰り下がり/.test(q) ? "ひき算" : "たし算・ひき算"}\n答えを□に書きましょう。\n${items.map(([a, op, b]) => `${a} ${op} ${b} ＝ □`).join("\n")}\n【教員用・印刷しない】\n正答：${items.map(([a, op, b, answer], i) => `${i + 1}．${answer}`).join("　")}`;
+    return `【児童用・印刷面】\n${/引き算|ひき算|減法|繰り下がり/.test(q) ? "ひき算" : "たし算・ひき算"}\n答えを□に書きましょう。\n${items.map(([a, op, b], i) => `${i + 1}．${a} ${op} ${b} ＝ □`).join("\n")}\n【教員用・印刷しない】\n正答：${items.map(([a, op, b, answer], i) => `${i + 1}．${answer}`).join("　")}`;
   }
   if (subject === "理科") {
+    if (/D04-02/.test(primaryId)) return `【児童用・印刷面】\n観察したことと予想を分けよう\n資料：たねAは1日目に0cm、3日目に1cmになりました。\n1．「3日目に1cmだった」は、観察・予想のどちらですか。\n2．「5日目には2cmになる」は、観察・予想のどちらですか。\n3．資料から確かめられることを一つ選びましょう。　3日目は1cm　／　5日目は2cm\n【教員用・印刷しない】\n正答：1．観察　2．予想　3．3日目は1cm`;
+    if (/D04-03/.test(primaryId)) return `【児童用・印刷面】\n変える条件を一つにしよう\n紙飛行機の飛ぶ距離を調べます。\n1．飛ばす距離を比べる時、変える条件を一つ選びましょう。　紙の折り方　／　投げる人と場所と紙の折り方\n2．同じにする条件を一つ選びましょう。　投げる場所　／　飛行機の色\n3．一回ごとの距離を記録する単位を選びましょう。　cm　／　kg\n【教員用・印刷しない】\n正答：1．紙の折り方　2．投げる場所　3．cm`;
+    if (/D04-04|D04-05/.test(primaryId)) return `【児童用・印刷面】\n結果を表から読もう\n紙飛行機の記録：A 120cm、B 150cm、C 90cm\n1．一番遠くまで飛んだのはどれですか。　A　／　B　／　C\n2．BとAの差は何cmですか。　＿＿cm\n3．結果を根拠に言える文を選びましょう。　Bが一番遠い　／　Aが一番遠い\n【教員用・印刷しない】\n正答：1．B　2．30cm　3．Bが一番遠い`;
+    if (/D04-01/.test(primaryId)) return `【児童用・印刷面】\n実験の手順をならべよう\n紙飛行機の距離を調べます。\n1．最初にすることを選びましょう。　記録用紙を片付ける　／　測る場所を決める\n2．次にすることを選びましょう。　同じ場所から飛ばす　／　毎回場所を変える\n3．結果を見た後にすることを選びましょう。　距離を記録する　／　結果を消す\n【教員用・印刷しない】\n正答：1．測る場所を決める　2．同じ場所から飛ばす　3．距離を記録する`;
     return `【児童用・印刷面】\n植物を観察しよう\n1．葉の色に○をつけましょう。　緑　黄色　茶色\n2．見つけた形を選びましょう。　丸い　細長い　とがっている\n3．観察して気づいたことを一つ書きましょう。\n＿＿＿＿＿＿＿＿＿＿＿＿\n【教員用・印刷しない】\n正答例：1．実物に合わせて選ぶ　2．実物に合わせて選ぶ　3．葉の色・形・数などを一つ記録する`;
   }
   if (subject === "社会") {
+    if (/D05-04/.test(primaryId)) return `【児童用・印刷面】\n表の数字を比べよう\n図書館の来館者数（人）：月曜 20、火曜 35、水曜 25\n1．一番多い曜日はいつですか。　月曜　／　火曜　／　水曜\n2．火曜は月曜より何人多いですか。　＿＿人\n3．この表の単位は何ですか。　人　／　cm\n【教員用・印刷しない】\n正答：1．火曜　2．15人　3．人`;
+    if (/D05-02/.test(primaryId)) return `【児童用・印刷面】\n出来事を古い順にならべよう\n資料：A 1543年、鉄砲が日本に伝わる。 B 1600年、関ヶ原の戦い。 C 1603年、江戸幕府が始まる。\n1．一番古い出来事はどれですか。　A　／　B　／　C\n2．次に古い出来事はどれですか。　A　／　B　／　C\n3．一番新しい出来事はどれですか。　A　／　B　／　C\n【教員用・印刷しない】\n正答：1．A　2．B　3．C`;
     return `【児童用・印刷面】\n方位を見つけよう\n北 ↑　東 →　南 ↓　西 ←\n1．北の反対はどれですか。　東　南　西\n2．東の反対はどれですか。　北　南　西\n3．矢印「↑」が指す方位を書きましょう。　＿＿＿\n【教員用・印刷しない】\n正答：1．南　2．西　3．北`;
   }
   if (subject === "保健体育") {
+    if (/D06-02/.test(primaryId)) return `【児童用・印刷面】\n運動の順番を見よう\n1．運動を始める前にすることを選びましょう。　準備運動　／　片付け\n2．合図が出たらまずすることを選びましょう。　止まる　／　走り続ける\n3．運動の後にすることを選びましょう。　整理運動　／　準備運動\n【教員用・印刷しない】\n正答：1．準備運動　2．止まる　3．整理運動`;
+    if (/D06-03/.test(primaryId)) return `【児童用・印刷面】\nボールを安全に受けよう\n1．初めに使うボールを選びましょう。　やわらかい大きなボール　／　かたい小さなボール\n2．初めの距離を選びましょう。　近い距離　／　遠い距離\n3．怖い時に伝える言葉を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．本人が安心して扱えるボール　2．本人が安全に試せる近い距離　3．「近くから試したいです」など`;
     return `【児童用・印刷面】\n安全に運動しよう\n1．運動の前にすることを選びましょう。　準備運動　走り出す\n2．合図が聞こえたら、まずすることを選びましょう。　止まる　押し続ける\n3．休みたい時に伝える言葉を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．準備運動　2．止まる　3．「休みたいです」など`;
   }
   if (subject === "技術・家庭") {
+    if (/D07-02/.test(primaryId)) return `【児童用・印刷面】\n定規で長さを写そう\n1．長さを測る時、定規のどこを線の始まりに合わせますか。　0の目盛り　／　定規の端\n2．4cmの線を引く時、終わりに合わせる目盛りはどれですか。　2cm　／　4cm\n3．測る単位を選びましょう。　cm　／　kg\n【教員用・印刷しない】\n正答：1．0の目盛り　2．4cm　3．cm`;
+    if (/D07-05/.test(primaryId)) return `【児童用・印刷面】\n食品の表を読もう\n飲み物の糖分（100mLあたり）：A 4g、B 8g、C 2g\n1．糖分が一番少ない飲み物はどれですか。　A　／　B　／　C\n2．一番多い飲み物はどれですか。　A　／　B　／　C\n3．表の単位を選びましょう。　g　／　cm\n【教員用・印刷しない】\n正答：1．C　2．B　3．g`;
+    if (/D07-01|D07-03/.test(primaryId)) return `【児童用・印刷面】\n作業の手順を確認しよう\n1．作業の前にすることを選びましょう。　手順と安全を読む　／　すぐ道具を使う\n2．作業中に困った時にすることを選びましょう。　作業を止めて確認する　／　そのまま続ける\n3．作業の後にすることを選びましょう。　道具を決めた場所に戻す　／　机に置いたままにする\n【教員用・印刷しない】\n正答：1．手順と安全を読む　2．作業を止めて確認する　3．道具を決めた場所に戻す`;
     return `【児童用・印刷面】\n作業前の安全チェック\n1．作業を始める前にすることを選びましょう。　手順を読む　道具を振る\n2．終わった道具はどこへ戻しますか。　決めた場所　机の端\n3．困った時に伝える言葉を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．手順を読む　2．決めた場所　3．「確認してください」など`;
   }
   return `【児童用・印刷面】\n止まる・考える・選ぶ\n場面：授業中に思いついたことがあり、今すぐ話したくなりました。\n1．まずすることを選びましょう。\n① 大きな声で話す　② 一度止まり、話す順番を待つ　③ 教室を出る\n2．話す順番を待つ時に使える合図を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．②　2．挙手、メモ、決めたカードなど本人と選んだ合図`;
