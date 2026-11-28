@@ -1,5 +1,5 @@
-const RELEASE = "1.8.8";
-const CACHE_NAME = "jiritsu-navi-github-v25";
+const RELEASE = "1.8.9";
+const CACHE_NAME = "jiritsu-navi-github-v26";
 const APP_ENTRY = new URL("./index.html", self.location.href);
 const APP_PATCH = new URL(`./worksheet-enhancement.js?v=${RELEASE}`, self.location.href);
 const APP_LOCATION = new URL(`./save-location.js?v=${RELEASE}`, self.location.href);

@@ -10,7 +10,7 @@ const WORKSHEET_TOOL = {
     type: "object",
     properties: {
       title: { type: "string", description: "A short student-friendly worksheet title." },
-      student_content: { type: "string", description: "One to three numbered, ready-to-print questions with all actual text, examples, choices, and answer spaces. No name/date fields or placeholder instructions." },
+      student_content: { type: "string", description: "One to three numbered, ready-to-print questions with all actual text, examples, choices, and answer spaces. For English spelling, use only the requested word(s), show each target word, and include a real one-letter cloze such as b□ok. No unrelated vocabulary, name/date fields, or placeholder instructions." },
       teacher_answers: { type: "string", description: "The answer to every student question, numbered in the same order." },
       adjustment: { type: "string", description: "Optional one-sentence difficulty adjustment for the teacher." }
     },
@@ -105,6 +105,7 @@ export async function onRequestPost({ request, env }) {
 - ワークシート案は完成した印刷物として書く。「ここに〜を書く/貼る/載せる」「点線に沿って」など、存在しない画像・線・欄を指すプレースホルダーや作業指示だけの問題を絶対に出さない。
 - 児童生徒用に氏名・学校名・日付の記入欄を設けない。個人情報は求めない。
 - 選択肢を出す時は重複を避け、正答が一つに定まるよう問題・選択肢・解答を照合する。誤字や不自然な日本語を出さない。
+- 英単語のワークシートでは、質問で指定された単語だけを使う。スペル練習には実際の目標語を示し、その語の一文字を□に置き換えた問題を必ず一つ含める。頼まれていない単語を追加しない。
 - なぞり書き用の点線や画像は生成できない。見本の文字を実際に印字し、書く欄は「□」「＿＿＿」で示す。架空の図版・罫線を作ったと説明しない。
 - 長い空白、全角空白の反復、置換文字「�」を出さない。空欄は短い下線か□だけを使う。
 
@@ -143,9 +144,9 @@ ${answerFormat}
         // source-card fallback below instead of showing a broken printout.
       }
       answer = formatWorksheetToolResult(worksheetResult);
-      if (!isPrintableWorksheet(answer)) {
+      if (!isPrintableWorksheet(answer, question)) {
         const fallback = buildFallbackWorksheet(question, evidence);
-        if (!isPrintableWorksheet(fallback)) {
+        if (!isPrintableWorksheet(fallback, question)) {
           return json({ message: "ワークシート案を印刷できる形に整えられませんでした。教科と学習内容を短く指定して、もう一度お試しください。" }, 502);
         }
         answer = `【簡易案】回答を印刷用の形に整えられなかったため、照合カードをもとにした短い案を表示します。\n\n${fallback}`;
@@ -206,10 +207,10 @@ function formatWorksheetToolResult(result) {
   return `【児童用・印刷面】\n${title}\n${studentContent}\n【教員用・印刷しない】\n正答：${teacherAnswers}${adjustment ? `\n調整案：${adjustment}` : ""}`;
 }
 
-function isPrintableWorksheet(value) {
+function isPrintableWorksheet(value, question = "") {
   const text = typeof value === "string" ? value.trim() : "";
   const studentCopy = text.split("【教員用・印刷しない】")[0] || "";
-  return text.length >= 40
+  const basicFormatValid = text.length >= 40
     && text.length <= 5000
     && /【児童用・印刷面】/.test(text)
     && /【教員用・印刷しない】/.test(text)
@@ -219,6 +220,19 @@ function isPrintableWorksheet(value) {
     && !/(?:ここに|点線に沿って|選択肢を用意|絵を貼|画像を貼|「.{0,8}を書く」)/.test(studentCopy)
     && !/[ \u3000]{24,}/.test(text)
     && !/�/.test(text);
+  if (!basicFormatValid) return false;
+
+  const query = String(question || "");
+  if (!/英単語|スペル|つづり|綴り/.test(query)) return true;
+  const genericWords = new Set(["english", "worksheet", "workbook", "word", "words", "spelling", "spell", "practice", "printable", "write", "writing"]);
+  const targets = [...query.matchAll(/\b[a-z]{2,}\b/gi)].map((match) => match[0].toLowerCase()).filter((word) => !genericWords.has(word));
+  if (!targets.length) return true;
+  const normalizedStudentCopy = studentCopy.toLowerCase();
+  const outputWords = [...normalizedStudentCopy.matchAll(/\b[a-z]{2,}\b/gi)].map((match) => match[0]);
+  const hasRequestedTarget = targets.some((word) => normalizedStudentCopy.includes(word));
+  const hasRequestedCloze = targets.some((word) => [...word].some((_, index) => normalizedStudentCopy.includes(`${word.slice(0, index)}□${word.slice(index + 1)}`)));
+  const hasOnlyRequestedVocabulary = outputWords.every((word) => targets.some((target) => target.includes(word)));
+  return hasRequestedTarget && hasRequestedCloze && hasOnlyRequestedVocabulary;
 }
 
 function buildFallbackWorksheet(question, evidence) {
@@ -255,11 +269,14 @@ function buildFallbackWorksheet(question, evidence) {
   if (subject === "英語") {
     if (/D02-04|D02-09|D02-10|語順|英作文/.test(`${q} ${primaryId}`)) return `【児童用・印刷面】\n英文の語順\n1．カードを正しい順番に並べましょう。\napples ／ like ／ I\n＿＿＿＿＿＿＿＿＿＿＿＿\n2．カードを正しい順番に並べましょう。\nhappy ／ is ／ She\n＿＿＿＿＿＿＿＿＿＿＿＿\n3．文を疑問文にしましょう。\nYou like apples. → ＿＿＿＿＿＿＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．I like apples.　2．She is happy.　3．Do you like apples?`;
     if (/D02-05/.test(primaryId)) return `【児童用・印刷面】\nis と一般動詞\n1．She（　）happy.　語群：is ／ plays\n2．He（　）tennis.　語群：is ／ plays\n3．They（　）kind.　語群：are ／ play\n【教員用・印刷しない】\n正答：1．is　2．plays　3．are`;
-    const target = /\b(?:dog|sun|pen|book|apple)\b/i.test(q) ? q.match(/\b(?:dog|sun|pen|book|apple)\b/i)[0].toLowerCase() : "cat";
     const meanings = { cat: "ねこ", dog: "いぬ", sun: "たいよう", pen: "ペン", book: "本", apple: "りんご" };
+    const genericWords = new Set(["english", "worksheet", "workbook", "word", "words", "spelling", "spell", "practice", "printable", "write", "writing"]);
+    const requestedWords = [...q.matchAll(/\b[a-z]{2,}\b/gi)].map((match) => match[0].toLowerCase()).filter((word) => !genericWords.has(word));
+    const target = requestedWords.find((word) => meanings[word]) || requestedWords[0] || "cat";
     const meaning = meanings[target];
-    const otherMeaning = Object.values(meanings).find((item) => item !== meaning);
     const missingVowel = target.match(/[aeiou]/i)?.[0]?.toLowerCase() || "a";
+    if (!meaning) return `【児童用・印刷面】\n英単語「${target}」\n1．見本の英単語を声に出して読みましょう。\n${target}\n2．ぬけた文字を選びましょう。\n${target.replace(/[aeiou]/i, "□")}　語群：a　／　i　／　u　／　e　／　o\n3．見本を見て、同じ英単語を書きましょう。\n見本：${target}\n＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．${target}　2．${missingVowel}　3．${target}`;
+    const otherMeaning = Object.values(meanings).find((item) => item !== meaning);
     return `【児童用・印刷面】\n英単語「${target}」\n1．${target} の意味を選びましょう。\n${otherMeaning}　／　${meaning}\n2．ぬけた文字を選びましょう。\n${target.replace(/[aeiou]/i, "□")}　語群：a　／　i　／　u　／　e　／　o\n3．見本を見て書きましょう。\n見本：${target}\n＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．${meaning}　2．${missingVowel}　3．${target}`;
   }
   if (subject === "数学") {
