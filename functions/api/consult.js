@@ -136,7 +136,11 @@ ${answerFormat}
       });
       const repaired = extractAnswer(repair);
       if (isPrintableWorksheet(repaired)) answer = repaired;
-      else return json({ message: "印刷用の形に整えられませんでした。質問を短くし、教科と作りたい問題を指定して再度お試しください。" }, 502);
+      else {
+        const fallback = buildFallbackWorksheet(question, evidence);
+        if (!fallback) return json({ message: "印刷用の形に整えられませんでした。教科と作りたい問題を指定して再度お試しください。" }, 502);
+        answer = `【簡易案】AIの回答に印刷上の不備があったため、相談内容と関連カードをもとにした短い案を表示します。\n\n${fallback}`;
+      }
     }
     const answerWithoutModelReferences = answer
       .replace(/(?:【参照カード】|参照カード\s*[:：])[\s\S]*$/i, "")
@@ -185,6 +189,53 @@ function isPrintableWorksheet(value) {
     && !/(?:ここに|点線に沿って|選択肢を用意|絵を貼|画像を貼|「.{0,8}を書く」)/.test(studentCopy)
     && !/[ \u3000]{24,}/.test(text)
     && !/�/.test(text);
+}
+
+function buildFallbackWorksheet(question, evidence) {
+  const q = String(question || "");
+  const subjects = new Set(evidence.map((card) => card.subject).filter(Boolean));
+  const subject = subjects.has("国語") || /国語|漢字|作文|音読|読解/.test(q) ? "国語"
+    : subjects.has("英語") || /英語|英単語|英文|スペル|英作文/.test(q) ? "英語"
+    : subjects.has("数学") || /算数|数学|足し算|たし算|引き算|ひき算|分数|小数|計算/.test(q) ? "数学"
+    : subjects.has("理科") || /理科|実験|観察/.test(q) ? "理科"
+    : subjects.has("社会") || /社会|地図|歴史|地理/.test(q) ? "社会"
+    : subjects.has("保健体育") || /保健体育|体育|運動|ボール/.test(q) ? "保健体育"
+    : subjects.has("技術・家庭") || /技術家庭|技術・家庭|家庭科|調理|製作/.test(q) ? "技術・家庭"
+    : "SST";
+
+  if (subject === "国語") {
+    const kanji = { 山: ["やま", "山に のぼります。"], 川: ["かわ", "川で あそびます。"], 日: ["ひ", "日が のぼります。"], 月: ["つき", "月を 見ます。"], 木: ["き", "木を 見ます。"], 人: ["ひと", "人が います。"], 花: ["はな", "花が さきます。"], 水: ["みず", "水を のみます。"], 火: ["ひ", "火を けします。"], 口: ["くち", "口を あけます。"], 目: ["め", "目を とじます。"], 大: ["おおきい", "大きな 山です。"], 小: ["ちいさい", "小さな 花です。"] };
+    const requested = q.match(/漢字\s*[「『]([一-龯々]{1,2})[」』]/)?.[1];
+    const target = kanji[requested] ? requested : "山";
+    const [reading, sentence] = kanji[target];
+    return `【児童用・印刷面】\nかんじ「${target}」\n1．見本を見て、読みを書きましょう。\n見本：${target}　読み：＿＿＿\n2．（　）に入る字を、語群から一つ選びましょう。\n${sentence}\n語群：${target}　川　日\n3．見本と同じ字を書きましょう。\n見本：${target}\n□　□\n【教員用・印刷しない】\n正答：1．${reading}　2．${target}　3．${target}`;
+  }
+  if (subject === "英語") {
+    const target = /\b(?:dog|sun|pen|book|apple)\b/i.test(q) ? q.match(/\b(?:dog|sun|pen|book|apple)\b/i)[0].toLowerCase() : "cat";
+    const meaning = { cat: "ねこ", dog: "いぬ", sun: "たいよう", pen: "ペン", book: "本", apple: "りんご" }[target];
+    return `【児童用・印刷面】\n英単語「${target}」\n1．語と意味を線で結びましょう。\n${target}　　　${meaning}\ndog　　　いぬ\n2．ぬけた文字を選びましょう。\n${target.replace(/a|o|u|e|i/, "□")}　語群：a　o　u\n3．見本を見て書きましょう。\n見本：${target}\n＿＿＿\n【教員用・印刷しない】\n正答：1．${target}—${meaning}、dog—いぬ　2．${target.match(/[aouei]/)?.[0] || "a"}　3．${target}`;
+  }
+  if (subject === "数学") {
+    const items = /繰り上がり|くり上がり|10をこえる|二桁/.test(q)
+      ? [[8, "+", 5, 13], [7, "+", 6, 13], [9, "+", 4, 13]]
+      : /引き算|ひき算|減法|繰り下がり/.test(q)
+        ? [[5, "−", 2, 3], [8, "−", 3, 5], [7, "−", 4, 3]]
+        : [[2, "+", 3, 5], [4, "+", 1, 5], [5, "−", 2, 3]];
+    return `【児童用・印刷面】\n${/引き算|ひき算|減法|繰り下がり/.test(q) ? "ひき算" : "たし算・ひき算"}\n答えを□に書きましょう。\n${items.map(([a, op, b]) => `${a} ${op} ${b} ＝ □`).join("\n")}\n【教員用・印刷しない】\n正答：${items.map(([a, op, b, answer], i) => `${i + 1}．${answer}`).join("　")}`;
+  }
+  if (subject === "理科") {
+    return `【児童用・印刷面】\n植物を観察しよう\n1．葉の色に○をつけましょう。　緑　黄色　茶色\n2．見つけた形を選びましょう。　丸い　細長い　とがっている\n3．観察して気づいたことを一つ書きましょう。\n＿＿＿＿＿＿＿＿＿＿＿＿\n【教員用・印刷しない】\n正答例：1．実物に合わせて選ぶ　2．実物に合わせて選ぶ　3．葉の色・形・数などを一つ記録する`;
+  }
+  if (subject === "社会") {
+    return `【児童用・印刷面】\n方位を見つけよう\n北 ↑　東 →　南 ↓　西 ←\n1．北の反対はどれですか。　東　南　西\n2．東の反対はどれですか。　北　南　西\n3．矢印「↑」が指す方位を書きましょう。　＿＿＿\n【教員用・印刷しない】\n正答：1．南　2．西　3．北`;
+  }
+  if (subject === "保健体育") {
+    return `【児童用・印刷面】\n安全に運動しよう\n1．運動の前にすることを選びましょう。　準備運動　走り出す\n2．合図が聞こえたら、まずすることを選びましょう。　止まる　押し続ける\n3．休みたい時に伝える言葉を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．準備運動　2．止まる　3．「休みたいです」など`;
+  }
+  if (subject === "技術・家庭") {
+    return `【児童用・印刷面】\n作業前の安全チェック\n1．作業を始める前にすることを選びましょう。　手順を読む　道具を振る\n2．終わった道具はどこへ戻しますか。　決めた場所　机の端\n3．困った時に伝える言葉を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．手順を読む　2．決めた場所　3．「確認してください」など`;
+  }
+  return `【児童用・印刷面】\n止まる・考える・選ぶ\n場面：授業中に思いついたことがあり、今すぐ話したくなりました。\n1．まずすることを選びましょう。\n① 大きな声で話す　② 一度止まり、話す順番を待つ　③ 教室を出る\n2．話す順番を待つ時に使える合図を書きましょう。　＿＿＿＿＿＿\n【教員用・印刷しない】\n正答：1．②　2．挙手、メモ、決めたカードなど本人と選んだ合図`;
 }
 
 function normalizeEvidence(input) {
