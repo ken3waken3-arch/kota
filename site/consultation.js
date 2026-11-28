@@ -108,7 +108,7 @@
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.5";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.6";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
@@ -126,7 +126,7 @@
     const stages = [...about.querySelectorAll(".detail-stage")];
     const featureStage = stages.find((stage) => stage.querySelector("h4")?.textContent.includes("この増補版でできること"));
     if (featureStage) {
-      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.5）";
+      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.6）";
       const list = featureStage.querySelector("ul");
       if (list) list.innerHTML = [
         "310件の支援カードを場面・教科から検索し、関連する自立活動の項目を確認する",
@@ -279,40 +279,51 @@
       : data;
     if (!candidates.length) return [];
 
-    // Match against titles and indexed keywords only. Long instructional prose
-    // contains many incidental Japanese character pairs and caused false hits.
+    const stopWords = new Set([
+      "国語", "英語", "数学", "算数", "理科", "社会", "保健体育", "体育", "技術家庭", "技術", "家庭",
+      "学習", "支援", "教科", "教科別", "困難", "つまずき", "ワークシート", "プリント", "教材", "穴埋め",
+      "相談", "作成", "作って", "作り", "案", "ほしい", "欲しい", "ください", "教えて", "答えて", "簡単", "具体",
+      "小学", "学校", "学年", "児童", "生徒", "本人", "子ども", "場面", "練習", "方法"
+    ]);
+    const highSignal = new Set([
+      "漢字", "音読", "読解", "作文", "語彙", "語句", "段落", "指示語", "英単語", "単語", "英文", "文法", "音節", "リスニング",
+      "足し算", "たし算", "引き算", "ひき算", "加法", "減法", "分数", "小数", "計算", "数直線", "繰り上がり", "繰り下がり",
+      "実験", "観察", "変数", "考察", "地図", "歴史", "地理", "公民", "統計", "運動", "ボール", "マット", "調理", "製作", "材料",
+      "衝動", "SST", "空気", "合図", "会話", "冗談", "気持ち", "手順", "書字", "板書", "集中", "不安", "切り替え"
+    ]);
+
+    // Use indexed titles/keywords, not long instructional prose. Exact keyword
+    // hits take priority so a topic like 漢字 does not pull in generic reading cards.
     const lexical = candidates.map((card) => ({
       card,
       terms: new Set(tokenize([card.title, ...(card.keywords || [])].filter(Boolean).join(" "))),
       phrases: (card.keywords || []).map(normalize).filter((term) => term.length >= 2)
     }));
-    const frequency = new Map();
-    for (const entry of lexical) for (const term of entry.terms) frequency.set(term, (frequency.get(term) || 0) + 1);
-    const stopWords = new Set([
-      "国語", "英語", "数学", "算数", "理科", "社会", "保健体育", "体育", "技術家庭", "技術", "家庭",
-      "学習", "支援", "教科", "教科別", "困難", "つまずき", "ワークシート", "プリント", "教材", "穴埋め",
-      "小学", "学校", "学年", "児童", "生徒", "本人", "子ども", "場面", "練習", "方法",
-      "相談", "作成", "作って", "作り", "案", "ほしい", "欲しい", "ください", "教えて", "答えて", "簡単", "具体"
-    ]);
-    const terms = new Set([...tokenize(searchQuery)].filter((term) => !stopWords.has(term)));
-    const scored = data.map((card) => {
-      const subject = cardSubject(card);
-      if (subjects.length && !allowedSubjects.has(subject)) return { card, score: 0 };
-      const entry = lexical.find((item) => item.card === card);
-      if (!entry) return { card, score: 0 };
+    const exactScores = lexical.map((entry) => {
+      const subject = cardSubject(entry.card);
       let score = 0;
-      for (const term of terms) {
-        if (!entry.terms.has(term)) continue;
-        const documentFrequency = frequency.get(term) || 1;
-        score += 1 + Math.log((candidates.length + 1) / (documentFrequency + 1));
-      }
       for (const phrase of entry.phrases) {
-        if (phrase.length >= 3 && q.includes(phrase)) score += Math.min(phrase.length, 18) * 0.55;
+        if (!stopWords.has(phrase) && q.includes(phrase)) score += 10 + Math.min(phrase.length, 20) * 0.5;
       }
       if (subjects.includes(subject) && score > 0) score += 2;
-      if (currentMode === "worksheet" && score > 0) score += 0.25;
-      return { card, score };
-    }).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score).slice(0, 4);
+      return { card: entry.card, score };
+    });
+    const hasExactHits = exactScores.some((entry) => entry.score > 0);
+    const fallbackTerms = [...tokenize(searchQuery)].filter((term) => !stopWords.has(term) && (term.length >= 3 || highSignal.has(term)));
+    const frequency = new Map();
+    for (const entry of lexical) for (const term of entry.terms) frequency.set(term, (frequency.get(term) || 0) + 1);
+    const fallbackScores = hasExactHits ? [] : lexical.map((entry) => {
+      const subject = cardSubject(entry.card);
+      let score = 0;
+      for (const term of fallbackTerms) {
+        if (!entry.terms.has(term)) continue;
+        score += 1 + Math.log((candidates.length + 1) / ((frequency.get(term) || 1) + 1));
+      }
+      if (subjects.includes(subject) && score > 0) score += 2;
+      return { card: entry.card, score };
+    });
+    const scored = (hasExactHits ? exactScores : fallbackScores)
+      .filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score).slice(0, 4);
     return scored.map(({ card }) => ({
       id: String(card.id || "").slice(0, 30), title: String(card.title || "").slice(0, 120),
       area: String(card.area || "").slice(0, 40), subject: String(card.subject || "").slice(0, 30),
