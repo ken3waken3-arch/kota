@@ -108,7 +108,7 @@
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.3";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.4";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
@@ -126,7 +126,7 @@
     const stages = [...about.querySelectorAll(".detail-stage")];
     const featureStage = stages.find((stage) => stage.querySelector("h4")?.textContent.includes("この増補版でできること"));
     if (featureStage) {
-      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.3）";
+      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.4）";
       const list = featureStage.querySelector("ul");
       if (list) list.innerHTML = [
         "310件の支援カードを場面・教科から検索し、関連する自立活動の項目を確認する",
