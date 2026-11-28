@@ -108,7 +108,7 @@
 
   const sourceList = document.querySelector(".source-list");
   const topFlag = document.querySelector(".topflag");
-  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.4";
+  if (topFlag) topFlag.textContent = "支援カード310件 · 出典更新・AI相談 v1.8.5";
   if (sourceList) {
     sourceList.innerHTML = `<p class="source-update-date">出典・編集方針を2026年11月27日に確認。現行資料と検討中資料を区別しています。</p>${SOURCES.map((s) => `<div class="source-item"><strong>${escapeHtml(s.name)}</strong><p>${escapeHtml(s.note)}${s.url ? ` <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">公式資料を開く</a>` : ""}</p></div>`).join("")}`;
     const about = sourceList.closest(".panel");
@@ -126,7 +126,7 @@
     const stages = [...about.querySelectorAll(".detail-stage")];
     const featureStage = stages.find((stage) => stage.querySelector("h4")?.textContent.includes("この増補版でできること"));
     if (featureStage) {
-      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.4）";
+      featureStage.querySelector("h4").textContent = "この増補版でできること（v1.8.5）";
       const list = featureStage.querySelector("ul");
       if (list) list.innerHTML = [
         "310件の支援カードを場面・教科から検索し、関連する自立活動の項目を確認する",
@@ -269,19 +269,48 @@
   function findRelevantCards(query, currentMode) {
     const data = extractCards();
     if (!data.length) return [];
-    const q = normalize(query);
-    const terms = new Set(tokenize(query));
+    const searchQuery = cleanSearchQuery(query);
+    const q = normalize(searchQuery);
+    if (!q) return [];
+    const subjects = subjectHints(searchQuery);
+    const allowedSubjects = new Set(subjects);
+    const candidates = subjects.length
+      ? data.filter((card) => allowedSubjects.has(cardSubject(card)))
+      : data;
+    if (!candidates.length) return [];
+
+    // Match against titles and indexed keywords only. Long instructional prose
+    // contains many incidental Japanese character pairs and caused false hits.
+    const lexical = candidates.map((card) => ({
+      card,
+      terms: new Set(tokenize([card.title, ...(card.keywords || [])].filter(Boolean).join(" "))),
+      phrases: (card.keywords || []).map(normalize).filter((term) => term.length >= 2)
+    }));
+    const frequency = new Map();
+    for (const entry of lexical) for (const term of entry.terms) frequency.set(term, (frequency.get(term) || 0) + 1);
+    const stopWords = new Set([
+      "国語", "英語", "数学", "算数", "理科", "社会", "保健体育", "体育", "技術家庭", "技術", "家庭",
+      "学習", "支援", "教科", "教科別", "困難", "つまずき", "ワークシート", "プリント", "教材", "穴埋め",
+      "小学", "学校", "学年", "児童", "生徒", "本人", "子ども", "場面", "練習", "方法",
+      "相談", "作成", "作って", "作り", "案", "ほしい", "欲しい", "ください", "教えて", "答えて", "簡単", "具体"
+    ]);
+    const terms = new Set([...tokenize(searchQuery)].filter((term) => !stopWords.has(term)));
     const scored = data.map((card) => {
-      const searchable = normalize([
-        card.title, card.area, card.subject, ...(card.keywords || []), card.scene,
-        ...(card.checks || []), ...(card.helps || []), card.goal, ...(card.lesson || []),
-        ...(card.measure || []), ...(card.avoid || []), card.words
-      ].filter(Boolean).join(" "));
+      const subject = cardSubject(card);
+      if (subjects.length && !allowedSubjects.has(subject)) return { card, score: 0 };
+      const entry = lexical.find((item) => item.card === card);
+      if (!entry) return { card, score: 0 };
       let score = 0;
-      if (q.length > 3 && searchable.includes(q)) score += 12;
-      for (const term of terms) if (term.length > 1 && searchable.includes(term)) score += Math.min(term.length, 5);
-      if (currentMode === "worksheet" && /ワークシート|プリント|教材|穴埋め/.test(normalize(card.title + " " + (card.keywords || []).join(" ")))) score += 1;
-      if (card.subject && query.includes(card.subject)) score += 5;
+      for (const term of terms) {
+        if (!entry.terms.has(term)) continue;
+        const documentFrequency = frequency.get(term) || 1;
+        score += 1 + Math.log((candidates.length + 1) / (documentFrequency + 1));
+      }
+      for (const phrase of entry.phrases) {
+        if (phrase.length >= 3 && q.includes(phrase)) score += Math.min(phrase.length, 18) * 0.55;
+      }
+      if (subjects.includes(subject) && score > 0) score += 2;
+      if (currentMode === "worksheet" && score > 0) score += 0.25;
       return { card, score };
     }).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score).slice(0, 4);
     return scored.map(({ card }) => ({
@@ -326,12 +355,41 @@
   }
 
   function normalize(value) { return String(value || "").toLowerCase().replace(/[\s　、。，．・「」『』（）()［］【】!?！？:：;；/／\\]+/g, ""); }
+
+  function cleanSearchQuery(value) {
+    return String(value || "")
+      .replace(/個人情報(?:は|を)?(?:含めて|含ま|ありません|ない|なし)?/g, " ")
+      .replace(/個人(?:を|が)?特定(?:できる|される)?/g, " ")
+      .replace(/(?:氏名|名前|学校名|住所|診断名)/g, " ")
+      .replace(/(?:書かないでください|含めていないことを確認しました)/g, " ");
+  }
+
+  function cardSubject(card) {
+    if (card.subject) return String(card.subject);
+    const area = String(card.area || "");
+    return area.startsWith("教科｜") ? area.slice("教科｜".length) : "";
+  }
+
+  function subjectHints(value) {
+    const q = String(value || "");
+    const found = new Set();
+    if (/英作文|英語|英単語|英文|リスニング|スペル|文法/.test(q)) found.add("英語");
+    const japaneseQuery = q.replace(/英作文/g, "");
+    if (/国語|漢字|かんじ|作文|音読|読解|語彙|語句|段落|文脈/.test(japaneseQuery)) found.add("国語");
+    if (/算数|数学|たし算|足し算|加法|ひき算|引き算|減法|分数|小数|計算|文章題|繰り上がり|繰り下がり/.test(q)) found.add("数学");
+    if (/理科|実験|観察|変数|考察|器具|目盛り/.test(q)) found.add("理科");
+    if (/社会|地図|歴史|地理|公民|年号|統計/.test(q)) found.add("社会");
+    if (/保健体育|体育|運動|ボール|マット/.test(q)) found.add("保健体育");
+    if (/技術・家庭|技術家庭|家庭科|調理|製作|材料/.test(q)) found.add("技術・家庭");
+    return [...found];
+  }
+
   function tokenize(value) {
     const raw = String(value || "").toLowerCase().match(/[a-z0-9]+|[\u3040-\u30ff\u3400-\u9fff]{2,}/g) || [];
     const out = new Set(raw);
     for (const token of raw) {
       const chars = [...token];
-      if (chars.length > 5) for (let i = 0; i < chars.length - 1; i++) out.add(chars.slice(i, i + 2).join(""));
+      if (chars.length > 1) for (let i = 0; i < chars.length - 1; i++) out.add(chars.slice(i, i + 2).join(""));
     }
     return out;
   }
