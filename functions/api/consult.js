@@ -66,11 +66,13 @@ export async function onRequestPost({ request, env }) {
     : "該当カードを特定できませんでした。プロジェクト内のカードで裏付けられない点は、その旨を答えに明記してください。";
 
   const answerFormat = mode === "worksheet"
-    ? `回答の形（ワークシート案）：
-【児童用・印刷面】1枚以内。短いタイトル、問題を1〜5問、実際に印刷される教材文・見本・数値・語群・選択肢・回答欄を完成した状態で書く。空欄は「＿＿＿」または「□」で表す。
-【教員用・印刷しない】正答を番号ごとに示し、難易度調整を一つだけ添える。
-漢字は目標字そのものと読みを表示する。英語は実際の単語・例文・語群・正答を書く。算数は具体的な数字の問題と正答を書く。国語の読解は短い本文と問い・答えを書く。
-選択肢は互いに異なるものにし、問題文と正答が一対一で対応するよう最終確認する。`
+    ? `回答形式を次の形に固定する。前置き・支援解説・まとめは出さない。
+【児童用・印刷面】
+短いタイトル
+1〜3問の問題を完成形で表示。実際の本文・見本・数値・語群・選択肢・書く欄をすべて含める。空欄は「＿＿＿」か「□」で表す。
+【教員用・印刷しない】
+番号ごとの正答をすべて書く。必要なら調整案を一つだけ添える。
+漢字なら目標字と読み、英語なら実際の単語と意味、算数なら具体的な計算式を問題に入れる。選択肢は重複させず、答えは一つに決める。`
     : `回答の形（支援相談）：
 【まず見ること】確認する点を最大3つ
 【今日試すこと】支援を1〜3個。本人が選ぶ方法を含める
@@ -85,11 +87,12 @@ export async function onRequestPost({ request, env }) {
 - 自立活動の正式な6区分27項目に関する制度説明は文部科学省資料を優先する。教科別支援の分類を正式な6区分27項目だと誤認させない。
 - 根拠資料にないことは断定せず、「確認が必要」「試行案」と明記する。効果を保証しない。安全確保が必要なら練習より安全を優先する。
 - 米国資料やUDLは参考枠組みと示し、日本の規則・教育課程として説明しない。
-- 文体はやさしい日本語。文章は600〜1000字以内。一般論の長い前置きは省く。
+- 文体はやさしい日本語。ワークシート案は完成面を短くし、一般論や長い前置きを省く。
 - ワークシート案は完成した印刷物として書く。「ここに〜を書く/貼る/載せる」「点線に沿って」など、存在しない画像・線・欄を指すプレースホルダーや作業指示だけの問題を絶対に出さない。
 - 児童生徒用に氏名・学校名・日付の記入欄を設けない。個人情報は求めない。
 - 選択肢を出す時は重複を避け、正答が一つに定まるよう問題・選択肢・解答を照合する。誤字や不自然な日本語を出さない。
 - なぞり書き用の点線や画像は生成できない。見本の文字を実際に印字し、書く欄は「□」「＿＿＿」で示す。架空の図版・罫線を作ったと説明しない。
+- 長い空白、全角空白の反復、置換文字「�」を出さない。空欄は短い下線か□だけを使う。
 
 プロジェクト内の根拠資料：
 ${REFERENCE_CONTEXT}
@@ -102,17 +105,39 @@ ${answerFormat}
 関連カードのIDや出典を本文で作り上げない。照合カードと出典は回答後にアプリが正確に表示する。カードがない場合は、提案が一般的な案であると本文で明記し、根拠不足を隠さない。`;
 
   try {
+    const modelOptions = {
+      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0.2
+    };
     const result = await env.AI.run(MODEL, {
       messages: [
         { role: "system", content: system },
         { role: "user", content: `相談の種類：${mode === "worksheet" ? "ワークシート案" : "支援相談"}\n相談：${question}` }
       ],
-      max_completion_tokens: 2048,
-      chat_template_kwargs: { enable_thinking: false },
-      temperature: 0.25
+      max_completion_tokens: mode === "worksheet" ? 1200 : 2048,
+      ...modelOptions
     });
-    const answer = extractAnswer(result);
+    let answer = extractAnswer(result);
     if (!answer) return json({ message: "AI応答を読み取れませんでした。少し待ってから再度お試しください。" }, 502);
+    if (mode === "worksheet" && !isPrintableWorksheet(answer)) {
+      const repair = await env.AI.run(MODEL, {
+        messages: [
+          { role: "system", content: `あなたは教材の校正者です。次の相談への回答案を、児童生徒用にそのまま印刷できる完成形に直してください。元の文章の説明は捨て、次の2見出しと必要な内容だけを返します。
+【児童用・印刷面】
+タイトル
+1〜3問の具体的な問題。本文・目標の文字/単語/数値・選択肢・記入欄を実際に書く。
+【教員用・印刷しない】
+番号ごとの正答。
+氏名欄・長い空白・「ここに〜」・未作成の図や点線の指示は禁止。選択肢は重複させず正答は一つ。漢字は実際の字を表示。英語は実際の単語を表示。算数は具体的な式を表示。日本語として自然か、問題と正答が一致するか確認してから返す。余分な前置きは不要。` },
+          { role: "user", content: `相談：${question}\n\n関連カード：\n${evidenceText}\n\n校正する回答案：\n${answer}` }
+        ],
+        max_completion_tokens: 1200,
+        ...modelOptions
+      });
+      const repaired = extractAnswer(repair);
+      if (isPrintableWorksheet(repaired)) answer = repaired;
+      else return json({ message: "印刷用の形に整えられませんでした。質問を短くし、教科と作りたい問題を指定して再度お試しください。" }, 502);
+    }
     const answerWithoutModelReferences = answer
       .replace(/(?:【参照カード】|参照カード\s*[:：])[\s\S]*$/i, "")
       .trim();
@@ -145,6 +170,21 @@ function extractAnswer(value) {
     if (text) return text;
   }
   return "";
+}
+
+function isPrintableWorksheet(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  const studentCopy = text.split("【教員用・印刷しない】")[0] || "";
+  return text.length >= 40
+    && text.length <= 5000
+    && /【児童用・印刷面】/.test(text)
+    && /【教員用・印刷しない】/.test(text)
+    && /(正答|解答)/.test(text)
+    && /(?:^|\n)\s*(?:\*\*)?(?:1[.．、)]|①)/m.test(studentCopy)
+    && !/(?:氏名|なまえ|名前|学校名|日付)/.test(studentCopy)
+    && !/(?:ここに|点線に沿って|選択肢を用意|絵を貼|画像を貼|「.{0,8}を書く」)/.test(studentCopy)
+    && !/[ \u3000]{24,}/.test(text)
+    && !/�/.test(text);
 }
 
 function normalizeEvidence(input) {
